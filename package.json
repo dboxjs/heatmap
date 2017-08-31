@@ -1,0 +1,26 @@
+{
+  "name": "@dboxjs/heatmap",
+  "version": "0.0.1",
+  "description": "A heatmap layer for dbox",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dboxjs/heatmap.git"
+  },
+  "keywords": [
+    "d3",
+    "data",
+    "charts",
+    "dbox",
+    "heatmap"
+  ],
+  "author": "Jorge Andrade <jorandradefig@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/dboxjs/heatmap/issues"
+  },
+  "homepage": "https://github.com/dboxjs/heatmap#readme"
+}
