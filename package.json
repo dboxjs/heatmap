@@ -1,6 +1,6 @@
 {
   "name": "@dboxjs/heatmap",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "A heatmap layer for dbox",
   "main": "index.js",
   "scripts": {
