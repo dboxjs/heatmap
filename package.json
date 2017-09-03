@@ -2,7 +2,7 @@
   "name": "@dboxjs/heatmap",
   "version": "0.0.2",
   "description": "A heatmap layer for dbox",
-  "main": "index.js",
+  "main": "heatmap.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -17,7 +17,7 @@
     "dbox",
     "heatmap"
   ],
-  "author": "Jorge Andrade <jorandradefig@gmail.com>",
+  "author": "@dboxjs",
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/dboxjs/heatmap/issues"
