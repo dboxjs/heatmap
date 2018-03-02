@@ -2,15 +2,17 @@
  * Heatmap Chart
  */
 
-export default function(config) {
+export default function(config,helper) {
 
-  function Heatmap(config){
+  var Heatmap = Object.create(helper);
+
+  Heatmap.init = function (config){
     var vm = this;
     vm._config = config ? config : {};
     vm._data = [];
     vm._scales ={};
     vm._axes = {};
-    vm._gridSize = Math.floor(vm._config.size.width / 16);
+    
     vm._legendElementWidth = vm._gridSize;
 
     vm._config._format     = d3.format(",.1f");
@@ -20,149 +22,156 @@ export default function(config) {
 
   //-------------------------------
   //User config functions
-  Heatmap.prototype.x = function(columns){
+  Heatmap.x = function(column){
     var vm = this;
-    vm._config.x = columns;
+    vm._config.x = column;
     return vm;
   }
 
-  Heatmap.prototype.y = function(columns){
+  Heatmap.y = function(column){
     var vm = this;
-    vm._config.y = columns;
+    vm._config.y = column;
+    return vm;
+  }
+  
+  Heatmap.fill = function(column){
+    var vm = this;
+    vm._config.fill = column;
     return vm;
   }
 
-  Heatmap.prototype.colors = function(colors){
+  Heatmap.colors = function(colors){
     var vm = this;
     vm._config.colors = colors;
     return vm;
   }
 
-  Heatmap.prototype.tip = function(tip){
+  Heatmap.sortBy = function(sortBy){
+    var vm = this;
+    vm._config.sortBy = sortBy;
+    return vm;
+  }
+
+  Heatmap.tip = function(tip){
     var vm = this;
     vm._config.tip = tip;
     vm._tip.html(vm._config.tip);
     return vm;
   }
 
-  Heatmap.prototype.buckets = function(b){
-    var vm = this;
-    vm._config.buckets = buckets;
-    return vm;
-  }
-
-  Heatmap.prototype.end = function(){
-    var vm = this;
-    return vm._chart;
-  }
-
   //-------------------------------
   //Triggered by the chart.js;
-  Heatmap.prototype.chart = function(chart){
+  Heatmap.data = function(data){
     var vm = this;
-    vm._chart = chart;
-    return vm;
-  }
+    var xSort = d3.ascending, 
+        ySort = d3.ascending; 
+    
+    if(typeof vm._config.sortBy === 'string'){
+      if(vm._config.hasOwnProperty('sortBy') && vm._config.sortBy === 'desc') xSort = d3.descending; 
+    }
 
-  Heatmap.prototype.data = function(data){
-    var vm = this;
+    if(typeof vm._config.sortBy === 'object'){
+      if(vm._config.hasOwnProperty('sortBy') &&  vm._config.sortBy.hasOwnProperty('x') && vm._config.sortBy.x === 'desc') xSort = d3.descending; 
+      if(vm._config.hasOwnProperty('sortBy') &&  vm._config.sortBy.hasOwnProperty('y') && vm._config.sortBy.y === 'desc') ySort = d3.descending; 
+    }
+
+    vm._config.xCategories = d3.nest()
+      .key(function(d) { return  d[vm._config.x]; }).sortKeys(xSort)
+      .entries(data)
+      .map(function(d){
+        return d.key; 
+      });
+
+    vm._config.yCategories = d3.nest()
+      .key(function(d) { return  d[vm._config.y]; }).sortKeys(ySort)
+      .entries(data)
+      .map(function(d){
+        return d.key; 
+      });
+
+    
+    vm._gridSize = Math.floor(vm._config.size.width / vm._config.xCategories.length);
+    
+    
     vm._data = data.map(function(d){
       var m = {
-        y: d.edad_mujer,
-        x: d.edad_hombre,
-        value: +d.tot,
-        percentage : +d.por,
+        y: d[vm._config.y],
+        x: d[vm._config.x],
+        value: +d[vm._config.fill],
       };
       return m;
     });
     return vm;
   }
 
-  Heatmap.prototype.scales = function(s){
+  Heatmap.scales = function(){
     var vm = this;
-    vm._scales = s;
     return vm;
   }
 
-  Heatmap.prototype.axes = function(a){
-    var vm = this;
-    vm._axes = a;
-    return vm;
-  }
-
-  Heatmap.prototype.domains = function(){
-    var vm = this;
-    return vm;
-  };
-
-  Heatmap.prototype.draw = function(){
+  Heatmap.draw = function(){
     var vm = this;
 
     //Call the tip
-    vm._chart._svg.call(vm._tip)
+    vm.chart.svg().call(vm._tip)
 
-    if(vm._config.xAxis){
-      vm._config.xAxis.y =  vm._config.y.length * vm._gridSize+25;
-    }else{
-      vm._config.xAxis = { 'y' : vm._config.y.length * vm._gridSize };
-    }
-
-    vm._dayLabels = vm._chart._svg.selectAll(".dayLabel")
-          .data(vm._config.y)
+    vm._yLabels = vm.chart.svg().selectAll(".yLabels")
+          .data(vm._config.yCategories)
           .enter().append("text")
             .text(function (d) { return d; })
             .attr("x", 0)
             .attr("y", function (d, i) { return i * vm._gridSize; })
             .style("text-anchor", "end")
             .attr("transform", "translate(-6," + vm._gridSize / 1.5 + ")")
-            .attr("class", "dayLabel mono axis");
+            .attr("class", "yLabels");
             //.attr("class", function (d, i) { return ((i >= 0 && i <= 4) ? "dayLabel mono axis axis-workweek" : "dayLabel mono axis"); });
 
-    vm._timeLabels = vm._chart._svg.selectAll(".timeLabel")
-        .data(vm._config.x)
+    vm._xLabels = vm.chart.svg().selectAll(".xLabels")
+        .data(vm._config.xCategories)
         .enter().append("text")
           .text(function(d) { return d; })
           .attr("x", function(d, i) { return i * vm._gridSize; })
-          .attr("y", vm._config.xAxis.y)
+          .attr("y",  vm._config.yCategories.length * vm._gridSize+25)
           .style("text-anchor", "middle")
           .attr("transform", "translate(" + vm._gridSize / 2 + ", -6)")
-          .attr("class", "timeLabel mono axis");
-          //.attr("class", function(d, i) { return ((i >= 7 && i <= 16) ? "timeLabel mono axis axis-worktime" : "timeLabel mono axis"); });
-
+          .attr("class", "xLabels mono axis");
+      
 
     var colorScale = d3.scaleQuantile()
         .domain([0, d3.max(vm._data, function (d) { return d.value; })])
         .range(vm._config.colors);
 
-    var cards = vm._chart._svg.selectAll(".hour")
+    var cards = vm.chart.svg().selectAll(".grid-cell")
         .data(vm._data, function(d) {
           return d.y+':'+d.x;
         });
 
     cards.enter().append("rect")
-        .attr("x", function(d) { return (vm._config.x.indexOf(d.x) ) * vm._gridSize; })
-        .attr("y", function(d) { return (vm._config.y.indexOf(d.y)) * vm._gridSize; })
+        .attr("x", function(d) { return (vm._config.xCategories.indexOf(String(d.x)) ) * vm._gridSize; })
+        .attr("y", function(d) { return (vm._config.yCategories.indexOf(String(d.y)) ) * vm._gridSize; })
         .attr("rx", 4)
         .attr("ry", 4)
-        .attr("class", "hour bordered")
+        .attr("class", "grid-cell")
+        .style("stroke",'#fff')
+        .style("stroke-width",'3px')
         .attr("id", function(d){ return 'x' + d.x + 'y' + d.y;})
         .attr("width", vm._gridSize)
         .attr("height", vm._gridSize)
         .on('mouseover', function(d,i){
-          /*if(vm._config.data.mouseover){
-            vm._config.data.mouseover.call(vm, d,i);
-          }*/
           vm._tip.show(d, d3.select(this).node());
+          if(vm._config.hasOwnProperty('mouseover')){
+            vm._config.mouseover.call(vm, d,i);
+          }
         })
         .on('mouseout', function(d,i){
-          /*if(vm._config.data.mouseout){
-            vm._config.data.mouseout.call(this, d,i);
-          }*/
           vm._tip.hide(d, d3.select(this).node());
+          if(vm._config.hasOwnProperty('mouseout')){
+            vm._config.mouseout.call(this, d,i);
+          }
         })
         .on("click", function(d,i){
-          if(vm._config.data.onclick){
-            vm._config.data.onclick.call(this, d, i);
+          if(vm._config.hasOwnProperty('onclick')){
+            vm._config.onclick.call(this, d, i);
           }
         })
         .style("fill", vm._config.colors[0])
@@ -170,10 +179,8 @@ export default function(config) {
         .duration(3000)
         .ease(d3.easeLinear)
         .style("fill", function(d) { return colorScale(d.value); });
-
-
   /*
-    var legend = vm._chart._svg.selectAll(".legend")
+    var legend = vm.chart.svg().selectAll(".legend")
         .data([0].concat(colorScale.quantiles()), function(d) { return d; });
 
     var lgroup = legend.enter().append("g")
@@ -195,6 +202,7 @@ export default function(config) {
     legend.exit().remove();*/
     return vm;
   }
+  Heatmap.init(config);
 
-  return new Heatmap(config);
+  return Heatmap;
 }
