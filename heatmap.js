@@ -15,9 +15,10 @@ export default function(config,helper) {
     
     vm._legendElementWidth = vm._gridSize;
 
-    vm._config._format     = d3.format(",.1f");
-
-    vm._tip = d3.tip().attr('class', 'd3-tip');
+    vm._tip = d3.tip()
+      .attr('class', 'd3-tip')
+      .direction('n')
+      .html(vm._config.tip || function(d){ return vm.utils.format(d[vm._config.y])});
   }
 
   //-------------------------------
