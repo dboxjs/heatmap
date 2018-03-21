@@ -13,12 +13,15 @@ export default function(config,helper) {
     vm._scales ={};
     vm._axes = {};
     
-    vm._legendElementWidth = vm._gridSize;
+    vm._legendElementWidth = vm._gridWidth;
 
     vm._tip = d3.tip()
       .attr('class', 'd3-tip')
       .direction('n')
-      .html(vm._config.tip || function(d){ return vm.utils.format(d[vm._config.y])});
+      .html(vm._config.tip || function(d) { 
+          return vm.utils.format(d.value);
+        }
+      );
   }
 
   //-------------------------------
@@ -44,6 +47,16 @@ export default function(config,helper) {
   Heatmap.colors = function(colors){
     var vm = this;
     vm._config.colors = colors;
+    return vm;
+  }
+
+  /**
+   * Personalize border radius (rx, ry) for each rect
+   * @param {number} radius - value to be set, default is 5
+   */
+  Heatmap.borderRadius = function(radius) {
+    var vm = this;
+    vm._config.borderRadius = radius;
     return vm;
   }
 
@@ -90,8 +103,13 @@ export default function(config,helper) {
         return d.key; 
       });
 
-    
-    vm._gridSize = Math.floor(vm._config.size.width / vm._config.xCategories.length);
+    /**
+     * Calculate grid width and height according to chart size
+     */
+    vm._gridWidth = Math.floor((vm._config.size.width - (vm._config.size.margin.left + vm._config.size.margin.right)) / vm._config.xCategories.length);
+
+    vm._gridHeight = Math.floor((vm._config.size.height - (vm._config.size.margin.top + vm._config.size.margin.bottom)) / vm._config.yCategories.length);
+
     
     
     vm._data = data.map(function(d){
@@ -121,9 +139,9 @@ export default function(config,helper) {
           .enter().append("text")
             .text(function (d) { return d; })
             .attr("x", 0)
-            .attr("y", function (d, i) { return i * vm._gridSize; })
+            .attr("y", function (d, i) { return i * vm._gridHeight; })
             .style("text-anchor", "end")
-            .attr("transform", "translate(-6," + vm._gridSize / 1.5 + ")")
+            .attr("transform", "translate(-6," + vm._gridHeight / 1.5 + ")")
             .attr("class", "yLabels");
             //.attr("class", function (d, i) { return ((i >= 0 && i <= 4) ? "dayLabel mono axis axis-workweek" : "dayLabel mono axis"); });
 
@@ -131,10 +149,10 @@ export default function(config,helper) {
         .data(vm._config.xCategories)
         .enter().append("text")
           .text(function(d) { return d; })
-          .attr("x", function(d, i) { return i * vm._gridSize; })
-          .attr("y",  vm._config.yCategories.length * vm._gridSize+25)
+          .attr("x", function(d, i) { return i * vm._gridWidth; })
+          .attr("y",  vm._config.yCategories.length * vm._gridHeight+25)
           .style("text-anchor", "middle")
-          .attr("transform", "translate(" + vm._gridSize / 2 + ", -6)")
+          .attr("transform", "translate(" + vm._gridWidth / 2 + ", -6)")
           .attr("class", "xLabels mono axis");
       
 
@@ -148,16 +166,17 @@ export default function(config,helper) {
         });
 
     cards.enter().append("rect")
-        .attr("x", function(d) { return (vm._config.xCategories.indexOf(String(d.x)) ) * vm._gridSize; })
-        .attr("y", function(d) { return (vm._config.yCategories.indexOf(String(d.y)) ) * vm._gridSize; })
-        .attr("rx", 4)
-        .attr("ry", 4)
+        .attr("x", function(d) { return (vm._config.xCategories.indexOf(String(d.x)) ) * vm._gridWidth; })
+        .attr("y", function(d) { return (vm._config.yCategories.indexOf(String(d.y)) ) * vm._gridHeight; })
+        .attr("rx", vm._config.borderRadius || 5)
+        .attr("ry", vm._config.borderRadius || 5)
+
         .attr("class", "grid-cell")
         .style("stroke",'#fff')
         .style("stroke-width",'3px')
         .attr("id", function(d){ return 'x' + d.x + 'y' + d.y;})
-        .attr("width", vm._gridSize)
-        .attr("height", vm._gridSize)
+        .attr("width", vm._gridWidth)
+        .attr("height", vm._gridHeight)
         .on('mouseover', function(d,i){
           vm._tip.show(d, d3.select(this).node());
           if(vm._config.hasOwnProperty('mouseover')){
@@ -191,14 +210,14 @@ export default function(config,helper) {
         .attr("x", function(d, i) {  return vm._legendElementWidth * i; })
         .attr("y", vm._config.size.height - vm._config.size.margin.bottom*2)
         .attr("width", vm._legendElementWidth)
-        .attr("height", vm._gridSize / 2)
+        .attr("height", vm._gridWidth / 2)
         .style("fill", function(d, i) { return vm._config.colors[i]; });
 
     lgroup.append("text")
         .attr("class", "mono")
         .text(function(d) { return "≥ " + Math.round(d); })
         .attr("x", function(d, i) { return vm._legendElementWidth * i; })
-        .attr("y", vm._config.size.height - vm._config.size.margin.bottom*2 + vm._gridSize);
+        .attr("y", vm._config.size.height - vm._config.size.margin.bottom*2 + vm._gridWidth);
 
     legend.exit().remove();*/
     return vm;
