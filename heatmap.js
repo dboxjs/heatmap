@@ -19,7 +19,6 @@ export default function(config,helper) {
       .attr('class', 'd3-tip')
       .direction('n')
       .html(vm._config.tip || function(d) { 
-          console.log(d); 
           return vm.utils.format(d.value);
         }
       );
