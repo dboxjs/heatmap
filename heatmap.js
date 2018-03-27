@@ -190,6 +190,7 @@ export default function (config, helper) {
     legend.append("text")
       .attr("x", 0)
       .attr("y", "1.5em")
+      .attr("class", "top-label")
       .style("text-anchor", "start")
       .text(function(){
         let max = Math.ceil(Math.max(...vm._config.fillValues));
@@ -208,6 +209,7 @@ export default function (config, helper) {
     legend.append("text")
       .attr("x", 0)
       .attr("y", vm._config.size.height * 0.6 + 40)
+      .attr("class", "bottom-label")
       .style("text-anchor", "start")
       .text(function(){ 
         let min = Math.floor(Math.min(...vm._config.fillValues))
