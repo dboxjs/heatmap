@@ -49,6 +49,12 @@ export default function (config, helper) {
     return vm;
   }
 
+  Heatmap.colorLegend = function (legendTitle) {
+    var vm = this;
+    vm._config.legendTitle = legendTitle;
+    return vm;
+  };
+
   /**
    * Personalize border radius (rx, ry) for each rect
    * @param {number} radius - value to be set, default is 5
@@ -73,7 +79,7 @@ export default function (config, helper) {
   }
 
   //-------------------------------
-  //Triggered by the chart.js;
+  //Triggered by chart.js;
   Heatmap.data = function (data) {
     var vm = this;
     var xSort = d3.ascending,
@@ -106,14 +112,21 @@ export default function (config, helper) {
         return d.key;
       });
 
+    vm._config.fillValues = d3.nest()
+      .key(function (d) {
+        return d[vm._config.fill];
+      })
+      .entries(data)
+      .map(function (d) {
+        return Number(d.key);
+      });
+
     /**
      * Calculate grid width and height according to chart size
      */
     vm._gridWidth = Math.floor((vm._config.size.width - (vm._config.size.margin.left + vm._config.size.margin.right)) / vm._config.xCategories.length);
 
     vm._gridHeight = Math.floor((vm._config.size.height - (vm._config.size.margin.top + vm._config.size.margin.bottom)) / vm._config.yCategories.length);
-
-
 
     vm._data = data.map(function (d) {
       var m = {
@@ -123,12 +136,86 @@ export default function (config, helper) {
       };
       return m;
     });
+
+
     return vm;
   }
 
   Heatmap.scales = function () {
     var vm = this;
     return vm;
+  }
+
+  Heatmap.drawColorLegend = function () {
+    var vm = this;
+   
+    //Define legend gradient
+    var defs = vm.chart.svg().append("defs");
+
+    var linearGradient = defs.append("linearGradient")
+      .attr('id', 'linear-gradient-label');
+
+    //Define direction for gradient. Default is vertical top-bottom.
+    linearGradient
+      .attr("x1", "0%")
+      .attr("y1", "100%")
+      .attr("x2", "0%")
+      .attr("y2", "0%");
+
+    //Define color scheme as linear gradient
+    var colorScale = d3.scaleLinear()
+      .range(vm._config.colors);
+
+    linearGradient.selectAll("stop") 
+      .data(colorScale.range())                  
+      .enter().append("stop")
+      .attr("offset", function(d,i) { return i/(colorScale.range().length-1); })
+      .attr("stop-color", function(d) { return d; });
+
+    //Add gradient legend 
+    //defaults to right position
+    var legend = vm.chart.svg()
+      .append("g")
+      .attr("class", "legend")
+      .attr("transform", "translate(" + (vm._config.size.width - vm._config.size.margin.right + 5) +"," + vm._config.size.height * .1 + ")");
+
+    //legend title
+    legend.append("text")
+      .attr("x", 0)
+      .attr("class", "legend-title")
+      .style("text-anchor", "start")
+      .text(vm._config.legendTitle);
+
+    //top text is the max value
+    legend.append("text")
+      .attr("x", 0)
+      .attr("y", "1.5em")
+      .attr("class", "top-label")
+      .style("text-anchor", "start")
+      .text(function(){
+        let max = Math.ceil(Math.max(...vm._config.fillValues));
+        return max.toLocaleString();
+      })
+
+    //draw gradient
+    legend.append("rect")
+      .attr("x", 0)
+      .attr("y", "2.3em")
+      .attr("width", 18)
+      .attr("height", vm._config.size.height * 0.6)
+      .style("fill", "url(#linear-gradient-label)");
+
+    //bottom text is the min value
+    legend.append("text")
+      .attr("x", 0)
+      .attr("y", vm._config.size.height * 0.6 + 40)
+      .attr("class", "bottom-label")
+      .style("text-anchor", "start")
+      .text(function(){ 
+        let min = Math.floor(Math.min(...vm._config.fillValues))
+        return min.toLocaleString();
+      })
+
   }
 
   Heatmap.draw = function () {
@@ -220,6 +307,12 @@ export default function (config, helper) {
       .style("fill", function (d) {
         return colorScale(d.value);
       });
+
+      if (vm._config.hasOwnProperty('legendTitle') ){ 
+        Heatmap.drawColorLegend(); 
+      }
+      
+
     /*
       var legend = vm.chart.svg().selectAll(".legend")
           .data([0].concat(colorScale.quantiles()), function(d) { return d; });
