@@ -49,6 +49,12 @@ export default function (config, helper) {
     return vm;
   }
 
+  Heatmap.legend = function (legend) {
+    var vm = this;
+    vm._config.legend = legend;
+    return vm;
+  };
+
   /**
    * Personalize border radius (rx, ry) for each rect
    * @param {number} radius - value to be set, default is 5
@@ -73,7 +79,7 @@ export default function (config, helper) {
   }
 
   //-------------------------------
-  //Triggered by the chart.js;
+  //Triggered by chart.js;
   Heatmap.data = function (data) {
     var vm = this;
     var xSort = d3.ascending,
@@ -129,6 +135,22 @@ export default function (config, helper) {
   Heatmap.scales = function () {
     var vm = this;
     return vm;
+  }
+
+  Heatmap.colorLegend = function () {
+    var vm = this;
+    // Draw legend
+    var legend = vm.chart.svg().selectAll(".legend")
+      .data(vm._config.colors)
+      .enter().append("g")
+      .attr("class", "legend")
+      .attr("transform", function(d, i) {return "translate("+(vm._config.size.width-vm._config.size.margin.right+5) +"," + 1 * 19 + ")"; });
+
+    legend.append("rect")
+      .attr("x",0)
+      .attr("width", 18)
+      .attr("height", 18)
+      .style("fill", 'black');
   }
 
   Heatmap.draw = function () {
@@ -220,6 +242,8 @@ export default function (config, helper) {
       .style("fill", function (d) {
         return colorScale(d.value);
       });
+
+      Heatmap.colorLegend();
     /*
       var legend = vm.chart.svg().selectAll(".legend")
           .data([0].concat(colorScale.quantiles()), function(d) { return d; });
