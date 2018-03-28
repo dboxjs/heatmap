@@ -137,7 +137,6 @@ export default function (config, helper) {
       return m;
     });
 
-
     return vm;
   };
 
@@ -183,7 +182,7 @@ export default function (config, helper) {
     legend.append('text')
       .attr('x', 0)
       .attr('class', 'legend-title')
-      .style('text-anchor', 'start')
+      .attr('text-anchor', 'start')
       .text(vm._config.legendTitle);
 
     //top text is the max value
@@ -191,7 +190,7 @@ export default function (config, helper) {
       .attr('x', 0)
       .attr('y', '1.5em')
       .attr('class', 'top-label')
-      .style('text-anchor', 'start')
+      .attr('text-anchor', 'start')
       .text(function(){
         let max = Math.ceil(Math.max(...vm._config.fillValues));
         return max.toLocaleString();
@@ -203,14 +202,14 @@ export default function (config, helper) {
       .attr('y', '2.3em')
       .attr('width', 18)
       .attr('height', vm._config.size.height * 0.6)
-      .style('fill', 'url(#linear-gradient-label)');
+      .attr('fill', 'url(#linear-gradient-label)');
 
     //bottom text is the min value
     legend.append('text')
       .attr('x', 0)
       .attr('y', vm._config.size.height * 0.6 + 40)
       .attr('class', 'bottom-label')
-      .style('text-anchor', 'start')
+      .attr('text-anchor', 'start')
       .text(function(){ 
         let min = Math.floor(Math.min(...vm._config.fillValues))
         return min.toLocaleString();
@@ -236,7 +235,7 @@ export default function (config, helper) {
         return 'translate(0,' + (i * vm._gridHeight) + ')';
       })
       .append('text')
-      .style('text-anchor', 'end')
+      .attr('text-anchor', 'end')
       .attr('transform', 'translate(-6,' + vm._gridHeight / 1.5 + ')')
       .text(function (d) {
         return d;
@@ -251,10 +250,10 @@ export default function (config, helper) {
       .append('g')
       .attr('class', 'tick')
       .attr('transform', function (d, i) {
-        return 'translate(' + (i * vm._gridWidth + (vm._gridWidth / 2) - 12) + ',' + (vm._config.yCategories.length * vm._gridHeight + 20 ) + ')'
+        return 'translate(' + (i * vm._gridWidth + (vm._gridWidth / 2) - 12) + ',' + (vm._config.yCategories.length * vm._gridHeight + 20 ) + ')';
       })
       .append('text')
-      .style('text-anchor', 'middle')
+      .attr('text-anchor', 'middle')
       .text(function (d) {
         return d;
       });
@@ -281,8 +280,8 @@ export default function (config, helper) {
       .attr('ry', vm._config.borderRadius || 5)
 
       .attr('class', 'grid-cell')
-      .style('stroke', '#fff')
-      .style('stroke-width', '3px')
+      .attr('stroke', '#fff')
+      .attr('stroke-width', '3px')
       .attr('id', function (d) {
         return 'x' + d.x + 'y' + d.y;
       })
@@ -305,19 +304,18 @@ export default function (config, helper) {
           vm._config.onclick.call(this, d, i);
         }
       })
-      .style('fill', vm._config.colors[0])
+      .attr('fill', vm._config.colors[0])
       .transition()
       .duration(3000)
       .ease(d3.easeLinear)
-      .style('fill', function (d) {
+      .attr('fill', function (d) {
         return colorScale(d.value);
       });
 
-      if (vm._config.hasOwnProperty('legendTitle') ){ 
-        Heatmap.drawColorLegend(); 
-      }
+    if (vm._config.hasOwnProperty('legendTitle') ){ 
+      Heatmap.drawColorLegend(); 
+    }
       
-
     /*
       var legend = vm.chart.svg().selectAll('.legend')
           .data([0].concat(colorScale.quantiles()), function(d) { return d; });
