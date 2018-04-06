@@ -82,8 +82,16 @@ export default function (config, helper) {
   //Triggered by chart.js;
   Heatmap.data = function (data) {
     var vm = this;
-    var xSort = d3.ascending,
-      ySort = d3.ascending;
+    var xSort = function (a, b) {
+      if (!Number.isNaN(+a) && !Number.isNaN(+b)) {
+        return Number(a) - Number(b);
+      } else if (a <= b) {
+        return -1;
+      } else {
+        return 1;
+      }
+    };
+    var ySort = d3.ascending;
 
     if (typeof vm._config.sortBy === 'string') {
       if (vm._config.hasOwnProperty('sortBy') && vm._config.sortBy === 'desc') xSort = d3.descending;
