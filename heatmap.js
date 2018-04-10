@@ -1,7 +1,8 @@
+import * as d3 from 'd3'
+
 /*
  * Heatmap Chart
  */
-
 export default function (config, helper) {
 
   var Heatmap = Object.create(helper);
