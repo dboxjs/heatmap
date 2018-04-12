@@ -20,7 +20,12 @@ export default function (config, helper) {
       .attr('class', 'd3-tip')
       .direction('n')
       .html(vm._config.tip || function (d) {
-        return vm.utils.format(d.value);
+        var html = d.x;
+        if (d.x !== d.y) {
+          html += '<br>' + d.y;
+        }
+        html += '<br>' + vm.utils.format(d.value);
+        return html;
       });
   };
 
@@ -220,7 +225,7 @@ export default function (config, helper) {
       .attr('class', 'bottom-label')
       .attr('text-anchor', 'middle')
       .text(function(){ 
-        let min = Math.floor(Math.min(...vm._config.fillValues))
+        let min = Math.floor(Math.min(...vm._config.fillValues));
         return min.toLocaleString();
       });
 
@@ -231,6 +236,12 @@ export default function (config, helper) {
 
     //Call the tip
     vm.chart.svg().call(vm._tip);
+
+    const axesTip = d3.tip().html(d => {
+      console.log(d);
+      return '<div class="title-tip">' + d + '</div>';
+    });
+    vm.chart.svg().call(axesTip);
 
     vm._yLabels = vm.chart.svg().append('g')
       .attr('class', 'y axis')
@@ -250,6 +261,21 @@ export default function (config, helper) {
         return d;
       });
 
+    vm._yLabels.each(function(d) {
+      if (this.getComputedTextLength() > vm._config.size.margin.left * 0.9) {
+        d3.select(this)
+          .on('mouseover', axesTip.show)
+          .on('mouseout', axesTip.hide);
+        let i = 1;
+        while (this.getComputedTextLength() > vm._config.size.margin.left * 0.9) {
+          d3.select(this).text(function (d) {
+            return d.slice(0, -i) + '...';
+          }).attr('title', d);
+          ++i;
+        }
+      }
+    });
+
     vm._xLabels = vm.chart.svg().append('g')
       .attr('class', 'x axis')
       .attr('transform', 'translate(0,0)')
@@ -259,13 +285,28 @@ export default function (config, helper) {
       .append('g')
       .attr('class', 'tick')
       .attr('transform', function (d, i) {
-        return 'translate(' + (i * vm._gridWidth + (vm._gridWidth / 2) - 12) + ',' + (vm._config.yCategories.length * vm._gridHeight + 20 ) + ')';
+        return 'translate(' + (i * vm._gridWidth + (vm._gridWidth / 2)) + ',' + (vm._config.yCategories.length * vm._gridHeight + 20 ) + ')';
       })
       .append('text')
       .attr('text-anchor', 'middle')
       .text(function (d) {
         return d;
       });
+
+    vm._xLabels.each(function (d) {
+      if (this.getComputedTextLength() > vm._gridWidth * 0.9) {
+        d3.select(this)
+          .on('mouseover', axesTip.show)
+          .on('mouseout', axesTip.hide);
+        let i = 1;
+        while (this.getComputedTextLength() > vm._gridWidth * 0.9) {
+          d3.select(this).text(function (d) {
+            return d.slice(0, -i) + '...';
+          }).attr('title', d);
+          ++i;
+        }
+      }
+    });
 
     var colorScale = d3.scaleQuantile()
       .domain([0, d3.max(vm._data, function (d) {
