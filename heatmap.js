@@ -191,7 +191,7 @@ export default function (config, helper) {
     legend.append('text')
       .attr('x', 0)
       .attr('class', 'legend-title')
-      .attr('text-anchor', 'start')
+      .attr('text-anchor', 'middle')
       .text(vm._config.legendTitle);
 
     //top text is the max value
@@ -199,15 +199,15 @@ export default function (config, helper) {
       .attr('x', 0)
       .attr('y', '1.5em')
       .attr('class', 'top-label')
-      .attr('text-anchor', 'start')
+      .attr('text-anchor', 'middle')
       .text(function(){
         let max = Math.ceil(Math.max(...vm._config.fillValues));
         return max.toLocaleString();
-      })
+      });
 
     //draw gradient
     legend.append('rect')
-      .attr('x', 0)
+      .attr('x', -18)
       .attr('y', '2.3em')
       .attr('width', 18)
       .attr('height', vm._config.size.height * 0.6)
@@ -218,7 +218,7 @@ export default function (config, helper) {
       .attr('x', 0)
       .attr('y', vm._config.size.height * 0.6 + 40)
       .attr('class', 'bottom-label')
-      .attr('text-anchor', 'start')
+      .attr('text-anchor', 'middle')
       .text(function(){ 
         let min = Math.floor(Math.min(...vm._config.fillValues))
         return min.toLocaleString();
