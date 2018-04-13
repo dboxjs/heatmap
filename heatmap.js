@@ -238,7 +238,6 @@ export default function (config, helper) {
     vm.chart.svg().call(vm._tip);
 
     const axesTip = d3.tip().html(d => {
-      console.log(d);
       return '<div class="title-tip">' + d + '</div>';
     });
     vm.chart.svg().call(axesTip);
