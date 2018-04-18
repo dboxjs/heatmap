@@ -207,7 +207,7 @@ export default function (config, helper) {
       .attr('text-anchor', 'middle')
       .text(function(){
         let max = Math.ceil(Math.max(...vm._config.fillValues));
-        return max.toLocaleString();
+        return vm.utils.format(max);
       });
 
     //draw gradient
@@ -224,9 +224,9 @@ export default function (config, helper) {
       .attr('y', vm._config.size.height * 0.6 + 40)
       .attr('class', 'bottom-label')
       .attr('text-anchor', 'middle')
-      .text(function(){ 
+      .text(function() {
         let min = Math.floor(Math.min(...vm._config.fillValues));
-        return min.toLocaleString();
+        return vm.utils.format(min);
       });
 
   };
@@ -293,16 +293,26 @@ export default function (config, helper) {
       });
 
     vm._xLabels.each(function (d) {
-      if (this.getComputedTextLength() > vm._gridWidth * 0.9) {
+      let labelMaxWidth = vm._gridWidth * 0.9;
+      if (vm._gridWidth > 60) {
+        d3.select(this).call(vm.utils.wrap, labelMaxWidth, axesTip);
+      } else {
         d3.select(this)
-          .on('mouseover', axesTip.show)
-          .on('mouseout', axesTip.hide);
-        let i = 1;
-        while (this.getComputedTextLength() > vm._gridWidth * 0.9) {
-          d3.select(this).text(function (d) {
-            return d.slice(0, -i) + '...';
-          }).attr('title', d);
-          ++i;
+          .attr('text-anchor', 'end')
+          .attr('dy', 0)
+          .attr('transform', 'translate(3,-8)rotate(-90)');
+        labelMaxWidth = vm._config.size.margin.bottom * 0.9;
+        if (this.getComputedTextLength() > labelMaxWidth) {
+          d3.select(this)
+            .on('mouseover', axesTip.show)
+            .on('mouseout', axesTip.hide);
+          let i = 1;
+          while (this.getComputedTextLength() > labelMaxWidth) {
+            d3.select(this).text(function (d) {
+              return d.slice(0, -i) + '...';
+            }).attr('title', d);
+            ++i;
+          }
         }
       }
     });
