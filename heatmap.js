@@ -88,24 +88,16 @@ export default function (config, helper) {
   //Triggered by chart.js;
   Heatmap.data = function (data) {
     var vm = this;
-    var xSort = function (a, b) {
-      if (!Number.isNaN(+a) && !Number.isNaN(+b)) {
-        return Number(a) - Number(b);
-      } else if (a <= b) {
-        return -1;
-      } else {
-        return 1;
-      }
-    };
-    var ySort = d3.ascending;
+    var xSort = vm.utils.sortAscending;
+    var ySort = vm.utils.sortAscending;
 
     if (typeof vm._config.sortBy === 'string') {
-      if (vm._config.hasOwnProperty('sortBy') && vm._config.sortBy === 'desc') xSort = d3.descending;
+      if (vm._config.hasOwnProperty('sortBy') && vm._config.sortBy === 'desc') xSort = vm.utils.sortDescending;
     }
 
     if (typeof vm._config.sortBy === 'object') {
-      if (vm._config.hasOwnProperty('sortBy') && vm._config.sortBy.hasOwnProperty('x') && vm._config.sortBy.x === 'desc') xSort = d3.descending;
-      if (vm._config.hasOwnProperty('sortBy') && vm._config.sortBy.hasOwnProperty('y') && vm._config.sortBy.y === 'desc') ySort = d3.descending;
+      if (vm._config.hasOwnProperty('sortBy') && vm._config.sortBy.hasOwnProperty('x') && vm._config.sortBy.x === 'desc') xSort = vm.utils.sortDescending;
+      if (vm._config.hasOwnProperty('sortBy') && vm._config.sortBy.hasOwnProperty('y') && vm._config.sortBy.y === 'desc') ySort = vm.utils.sortDescending;
     }
 
     vm._config.xCategories = d3.nest()
