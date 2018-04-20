@@ -1,200 +1,397 @@
+import * as d3 from 'd3';
+
 /*
  * Heatmap Chart
  */
+export default function (config, helper) {
 
-export default function(config) {
+  var Heatmap = Object.create(helper);
 
-  function Heatmap(config){
+  Heatmap.init = function (config) {
     var vm = this;
     vm._config = config ? config : {};
     vm._data = [];
-    vm._scales ={};
+    vm._scales = {};
     vm._axes = {};
-    vm._gridSize = Math.floor(vm._config.size.width / 16);
-    vm._legendElementWidth = vm._gridSize;
 
-    vm._config._format     = d3.format(",.1f");
+    vm._legendElementWidth = vm._gridWidth;
 
-    vm._tip = d3.tip().attr('class', 'd3-tip');
-  }
+    vm._tip = d3.tip()
+      .attr('class', 'd3-tip')
+      .direction('n')
+      .html(vm._config.tip || function (d) {
+        var html = d.x;
+        if (d.x !== d.y) {
+          html += '<br>' + d.y;
+        }
+        html += '<br>' + vm.utils.format(d.value);
+        return html;
+      });
+  };
 
   //-------------------------------
   //User config functions
-  Heatmap.prototype.x = function(columns){
+  Heatmap.x = function (column) {
     var vm = this;
-    vm._config.x = columns;
+    vm._config.x = column;
     return vm;
-  }
+  };
 
-  Heatmap.prototype.y = function(columns){
+  Heatmap.y = function (column) {
     var vm = this;
-    vm._config.y = columns;
+    vm._config.y = column;
     return vm;
-  }
+  };
 
-  Heatmap.prototype.colors = function(colors){
+  Heatmap.fill = function (column) {
+    var vm = this;
+    vm._config.fill = column;
+    return vm;
+  };
+
+  Heatmap.colors = function (colors) {
     var vm = this;
     vm._config.colors = colors;
     return vm;
-  }
+  };
 
-  Heatmap.prototype.tip = function(tip){
+  Heatmap.colorLegend = function (legendTitle) {
+    var vm = this;
+    vm._config.legendTitle = legendTitle;
+    return vm;
+  };
+
+  /**
+   * Personalize border radius (rx, ry) for each rect
+   * @param {number} radius - value to be set, default is 5
+   */
+  Heatmap.borderRadius = function (radius) {
+    var vm = this;
+    vm._config.borderRadius = radius;
+    return vm;
+  };
+
+  Heatmap.sortBy = function (sortBy) {
+    var vm = this;
+    vm._config.sortBy = sortBy;
+    return vm;
+  };
+
+  Heatmap.tip = function (tip) {
     var vm = this;
     vm._config.tip = tip;
     vm._tip.html(vm._config.tip);
     return vm;
-  }
-
-  Heatmap.prototype.buckets = function(b){
-    var vm = this;
-    vm._config.buckets = buckets;
-    return vm;
-  }
-
-  Heatmap.prototype.end = function(){
-    var vm = this;
-    return vm._chart;
-  }
+  };
 
   //-------------------------------
-  //Triggered by the chart.js;
-  Heatmap.prototype.chart = function(chart){
+  //Triggered by chart.js;
+  Heatmap.data = function (data) {
     var vm = this;
-    vm._chart = chart;
-    return vm;
-  }
+    var xSort = vm.utils.sortAscending;
+    var ySort = vm.utils.sortAscending;
 
-  Heatmap.prototype.data = function(data){
-    var vm = this;
-    vm._data = data.map(function(d){
+    if (typeof vm._config.sortBy === 'string') {
+      if (vm._config.hasOwnProperty('sortBy') && vm._config.sortBy === 'desc') xSort = vm.utils.sortDescending;
+    }
+
+    if (typeof vm._config.sortBy === 'object') {
+      if (vm._config.hasOwnProperty('sortBy') && vm._config.sortBy.hasOwnProperty('x') && vm._config.sortBy.x === 'desc') xSort = vm.utils.sortDescending;
+      if (vm._config.hasOwnProperty('sortBy') && vm._config.sortBy.hasOwnProperty('y') && vm._config.sortBy.y === 'desc') ySort = vm.utils.sortDescending;
+    }
+
+    vm._config.xCategories = d3.nest()
+      .key(function (d) {
+        return d[vm._config.x];
+      }).sortKeys(xSort)
+      .entries(data)
+      .map(function (d) {
+        return d.key;
+      });
+
+    vm._config.yCategories = d3.nest()
+      .key(function (d) {
+        return d[vm._config.y];
+      }).sortKeys(ySort)
+      .entries(data)
+      .map(function (d) {
+        return d.key;
+      });
+
+    vm._config.fillValues = d3.nest()
+      .key(function (d) {
+        return d[vm._config.fill];
+      })
+      .entries(data)
+      .map(function (d) {
+        return Number(d.key);
+      });
+
+    /**
+     * Calculate grid width and height according to chart size
+     */
+    vm._gridWidth = Math.floor((vm._config.size.width - (vm._config.size.margin.left + vm._config.size.margin.right)) / vm._config.xCategories.length);
+
+    vm._gridHeight = Math.floor((vm._config.size.height - (vm._config.size.margin.top + vm._config.size.margin.bottom)) / vm._config.yCategories.length);
+
+    vm._data = data.map(function (d) {
       var m = {
-        y: d.edad_mujer,
-        x: d.edad_hombre,
-        value: +d.tot,
-        percentage : +d.por,
+        y: d[vm._config.y],
+        x: d[vm._config.x],
+        value: +d[vm._config.fill],
       };
       return m;
     });
-    return vm;
-  }
 
-  Heatmap.prototype.scales = function(s){
-    var vm = this;
-    vm._scales = s;
     return vm;
-  }
+  };
 
-  Heatmap.prototype.axes = function(a){
-    var vm = this;
-    vm._axes = a;
-    return vm;
-  }
-
-  Heatmap.prototype.domains = function(){
+  Heatmap.scales = function () {
     var vm = this;
     return vm;
   };
 
-  Heatmap.prototype.draw = function(){
+  Heatmap.drawColorLegend = function () {
+    var vm = this;
+   
+    //Define legend gradient
+    var defs = vm.chart.svg().append('defs');
+
+    var linearGradient = defs.append('linearGradient')
+      .attr('id', 'linear-gradient-label');
+
+    //Define direction for gradient. Default is vertical top-bottom.
+    linearGradient
+      .attr('x1', '0%')
+      .attr('y1', '100%')
+      .attr('x2', '0%')
+      .attr('y2', '0%');
+
+    //Define color scheme as linear gradient
+    var colorScale = d3.scaleLinear()
+      .range(vm._config.colors);
+
+    linearGradient.selectAll('stop') 
+      .data(colorScale.range())                  
+      .enter().append('stop')
+      .attr('offset', function(d,i) { return i/(colorScale.range().length-1); })
+      .attr('stop-color', function(d) { return d; });
+
+    //Add gradient legend 
+    //defaults to right position
+    var legend = vm.chart.svg()
+      .append('g')
+      .attr('class', 'legend')
+      .attr('transform', 'translate(' + (vm._config.size.width - vm._config.size.margin.right + 5) +',' + vm._config.size.height * .1 + ')');
+
+    //legend title
+    legend.append('text')
+      .attr('x', 0)
+      .attr('class', 'legend-title')
+      .attr('text-anchor', 'middle')
+      .text(vm._config.legendTitle);
+
+    //top text is the max value
+    legend.append('text')
+      .attr('x', 0)
+      .attr('y', '1.5em')
+      .attr('class', 'top-label')
+      .attr('text-anchor', 'middle')
+      .text(function(){
+        let max = Math.ceil(Math.max(...vm._config.fillValues));
+        return vm.utils.format(max);
+      });
+
+    //draw gradient
+    legend.append('rect')
+      .attr('x', -18)
+      .attr('y', '2.3em')
+      .attr('width', 18)
+      .attr('height', vm._config.size.height * 0.6)
+      .attr('fill', 'url(#linear-gradient-label)');
+
+    //bottom text is the min value
+    legend.append('text')
+      .attr('x', 0)
+      .attr('y', vm._config.size.height * 0.6 + 40)
+      .attr('class', 'bottom-label')
+      .attr('text-anchor', 'middle')
+      .text(function() {
+        let min = Math.floor(Math.min(...vm._config.fillValues));
+        return vm.utils.format(min);
+      });
+
+  };
+
+  Heatmap.draw = function () {
     var vm = this;
 
     //Call the tip
-    vm._chart._svg.call(vm._tip)
+    vm.chart.svg().call(vm._tip);
 
-    if(vm._config.xAxis){
-      vm._config.xAxis.y =  vm._config.y.length * vm._gridSize+25;
-    }else{
-      vm._config.xAxis = { 'y' : vm._config.y.length * vm._gridSize };
-    }
+    const axesTip = d3.tip().html(d => {
+      return '<div class="title-tip">' + d + '</div>';
+    });
+    vm.chart.svg().call(axesTip);
 
-    vm._dayLabels = vm._chart._svg.selectAll(".dayLabel")
-          .data(vm._config.y)
-          .enter().append("text")
-            .text(function (d) { return d; })
-            .attr("x", 0)
-            .attr("y", function (d, i) { return i * vm._gridSize; })
-            .style("text-anchor", "end")
-            .attr("transform", "translate(-6," + vm._gridSize / 1.5 + ")")
-            .attr("class", "dayLabel mono axis");
-            //.attr("class", function (d, i) { return ((i >= 0 && i <= 4) ? "dayLabel mono axis axis-workweek" : "dayLabel mono axis"); });
+    vm._yLabels = vm.chart.svg().append('g')
+      .attr('class', 'y axis')
+      .attr('transform', 'translate(0,0)')
+      .selectAll('.tick')
+      .data(vm._config.yCategories)
+      .enter()
+      .append('g')
+      .attr('class', 'tick')
+      .attr('transform', function(d, i) {
+        return 'translate(0,' + (i * vm._gridHeight) + ')';
+      })
+      .append('text')
+      .attr('text-anchor', 'end')
+      .attr('transform', 'translate(-6,' + vm._gridHeight / 1.5 + ')')
+      .text(function (d) {
+        return d;
+      });
 
-    vm._timeLabels = vm._chart._svg.selectAll(".timeLabel")
-        .data(vm._config.x)
-        .enter().append("text")
-          .text(function(d) { return d; })
-          .attr("x", function(d, i) { return i * vm._gridSize; })
-          .attr("y", vm._config.xAxis.y)
-          .style("text-anchor", "middle")
-          .attr("transform", "translate(" + vm._gridSize / 2 + ", -6)")
-          .attr("class", "timeLabel mono axis");
-          //.attr("class", function(d, i) { return ((i >= 7 && i <= 16) ? "timeLabel mono axis axis-worktime" : "timeLabel mono axis"); });
+    vm._yLabels.each(function(d) {
+      if (this.getComputedTextLength() > vm._config.size.margin.left * 0.9) {
+        d3.select(this)
+          .on('mouseover', axesTip.show)
+          .on('mouseout', axesTip.hide);
+        let i = 1;
+        while (this.getComputedTextLength() > vm._config.size.margin.left * 0.9) {
+          d3.select(this).text(function (d) {
+            return d.slice(0, -i) + '...';
+          }).attr('title', d);
+          ++i;
+        }
+      }
+    });
 
+    vm._xLabels = vm.chart.svg().append('g')
+      .attr('class', 'x axis')
+      .attr('transform', 'translate(0,0)')
+      .selectAll('.tick')
+      .data(vm._config.xCategories)
+      .enter()
+      .append('g')
+      .attr('class', 'tick')
+      .attr('transform', function (d, i) {
+        return 'translate(' + (i * vm._gridWidth + (vm._gridWidth / 2)) + ',' + (vm._config.yCategories.length * vm._gridHeight + 20 ) + ')';
+      })
+      .append('text')
+      .attr('text-anchor', 'middle')
+      .text(function (d) {
+        return d;
+      });
+
+    vm._xLabels.each(function (d) {
+      let labelMaxWidth = vm._gridWidth * 0.9;
+      if (vm._gridWidth > 60) {
+        d3.select(this).call(vm.utils.wrap, labelMaxWidth, axesTip);
+      } else {
+        d3.select(this)
+          .attr('text-anchor', 'end')
+          .attr('dy', 0)
+          .attr('transform', 'translate(3,-8)rotate(-90)');
+        labelMaxWidth = vm._config.size.margin.bottom * 0.9;
+        if (this.getComputedTextLength() > labelMaxWidth) {
+          d3.select(this)
+            .on('mouseover', axesTip.show)
+            .on('mouseout', axesTip.hide);
+          let i = 1;
+          while (this.getComputedTextLength() > labelMaxWidth) {
+            d3.select(this).text(function (d) {
+              return d.slice(0, -i) + '...';
+            }).attr('title', d);
+            ++i;
+          }
+        }
+      }
+    });
 
     var colorScale = d3.scaleQuantile()
-        .domain([0, d3.max(vm._data, function (d) { return d.value; })])
-        .range(vm._config.colors);
+      .domain([0, d3.max(vm._data, function (d) {
+        return d.value;
+      })])
+      .range(vm._config.colors);
 
-    var cards = vm._chart._svg.selectAll(".hour")
-        .data(vm._data, function(d) {
-          return d.y+':'+d.x;
-        });
+    var cards = vm.chart.svg().selectAll('.grid-cell')
+      .data(vm._data, function (d) {
+        return d.y + ':' + d.x;
+      });
 
-    cards.enter().append("rect")
-        .attr("x", function(d) { return (vm._config.x.indexOf(d.x) ) * vm._gridSize; })
-        .attr("y", function(d) { return (vm._config.y.indexOf(d.y)) * vm._gridSize; })
-        .attr("rx", 4)
-        .attr("ry", 4)
-        .attr("class", "hour bordered")
-        .attr("id", function(d){ return 'x' + d.x + 'y' + d.y;})
-        .attr("width", vm._gridSize)
-        .attr("height", vm._gridSize)
-        .on('mouseover', function(d,i){
-          /*if(vm._config.data.mouseover){
-            vm._config.data.mouseover.call(vm, d,i);
-          }*/
-          vm._tip.show(d, d3.select(this).node());
-        })
-        .on('mouseout', function(d,i){
-          /*if(vm._config.data.mouseout){
-            vm._config.data.mouseout.call(this, d,i);
-          }*/
-          vm._tip.hide(d, d3.select(this).node());
-        })
-        .on("click", function(d,i){
-          if(vm._config.data.onclick){
-            vm._config.data.onclick.call(this, d, i);
-          }
-        })
-        .style("fill", vm._config.colors[0])
+    cards.enter().append('rect')
+      .attr('x', function (d) {
+        return (vm._config.xCategories.indexOf(String(d.x))) * vm._gridWidth;
+      })
+      .attr('y', function (d) {
+        return (vm._config.yCategories.indexOf(String(d.y))) * vm._gridHeight;
+      })
+      .attr('rx', vm._config.borderRadius || 5)
+      .attr('ry', vm._config.borderRadius || 5)
+
+      .attr('class', 'grid-cell')
+      .attr('stroke', '#fff')
+      .attr('stroke-width', '3px')
+      .attr('id', function (d) {
+        return 'x' + d.x + 'y' + d.y;
+      })
+      .attr('width', vm._gridWidth)
+      .attr('height', vm._gridHeight)
+      .on('mouseover', function (d, i) {
+        vm._tip.show(d, d3.select(this).node());
+        if (vm._config.hasOwnProperty('mouseover')) {
+          vm._config.mouseover.call(vm, d, i);
+        }
+      })
+      .on('mouseout', function (d, i) {
+        vm._tip.hide(d, d3.select(this).node());
+        if (vm._config.hasOwnProperty('mouseout')) {
+          vm._config.mouseout.call(this, d, i);
+        }
+      })
+      .on('click', function (d, i) {
+        if (vm._config.hasOwnProperty('onclick')) {
+          vm._config.onclick.call(this, d, i);
+        }
+      })
+      .attr('fill', vm._config.colors[0])
       .transition()
-        .duration(3000)
-        .ease(d3.easeLinear)
-        .style("fill", function(d) { return colorScale(d.value); });
+      .duration(3000)
+      .ease(d3.easeLinear)
+      .attr('fill', function (d) {
+        return colorScale(d.value);
+      });
 
+    if (vm._config.hasOwnProperty('legendTitle') ){ 
+      Heatmap.drawColorLegend(); 
+    }
+      
+    /*
+      var legend = vm.chart.svg().selectAll('.legend')
+          .data([0].concat(colorScale.quantiles()), function(d) { return d; });
 
-  /*
-    var legend = vm._chart._svg.selectAll(".legend")
-        .data([0].concat(colorScale.quantiles()), function(d) { return d; });
+      var lgroup = legend.enter().append('g')
+          .attr('class', 'legend');
 
-    var lgroup = legend.enter().append("g")
-        .attr("class", "legend");
+      lgroup.append('rect')
+          .attr('x', function(d, i) {  return vm._legendElementWidth * i; })
+          .attr('y', vm._config.size.height - vm._config.size.margin.bottom*2)
+          .attr('width', vm._legendElementWidth)
+          .attr('height', vm._gridWidth / 2)
+          .style('fill', function(d, i) { return vm._config.colors[i]; });
 
-    lgroup.append("rect")
-        .attr("x", function(d, i) {  return vm._legendElementWidth * i; })
-        .attr("y", vm._config.size.height - vm._config.size.margin.bottom*2)
-        .attr("width", vm._legendElementWidth)
-        .attr("height", vm._gridSize / 2)
-        .style("fill", function(d, i) { return vm._config.colors[i]; });
+      lgroup.append('text')
+          .attr('class', 'mono')
+          .text(function(d) { return '≥ ' + Math.round(d); })
+          .attr('x', function(d, i) { return vm._legendElementWidth * i; })
+          .attr('y', vm._config.size.height - vm._config.size.margin.bottom*2 + vm._gridWidth);
 
-    lgroup.append("text")
-        .attr("class", "mono")
-        .text(function(d) { return "≥ " + Math.round(d); })
-        .attr("x", function(d, i) { return vm._legendElementWidth * i; })
-        .attr("y", vm._config.size.height - vm._config.size.margin.bottom*2 + vm._gridSize);
-
-    legend.exit().remove();*/
+      legend.exit().remove();*/
     return vm;
-  }
+  };
 
-  return new Heatmap(config);
+  Heatmap.init(config);
+
+  return Heatmap;
 }
