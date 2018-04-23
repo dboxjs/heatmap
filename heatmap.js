@@ -284,16 +284,17 @@ export default function (config, helper) {
         return d;
       });
 
-    vm._xLabels.each(function (d) {
-      let labelMaxWidth = vm._gridWidth * 0.9;
-      if (vm._gridWidth > 60) {
-        d3.select(this).call(vm.utils.wrap, labelMaxWidth, axesTip);
-      } else {
+    const biggestLabelWidth = d3.max(d3.select('.x.axis').selectAll('text').nodes().map(o => o.getComputedTextLength())); // Biggest label computed text length
+    let xBandWidth = vm._gridWidth;
+    let labelMaxWidth = xBandWidth;
+    if (biggestLabelWidth > xBandWidth) { // Biggest label doesn't fit
+      vm._xLabels.each(function (d) {
         d3.select(this)
           .attr('text-anchor', 'end')
           .attr('dy', 0)
-          .attr('transform', 'translate(3,-8)rotate(-90)');
-        labelMaxWidth = vm._config.size.margin.bottom * 0.9;
+          .attr('transform', 'translate(-5,-10)rotate(-90)');
+        // Still doesn't fit!
+        labelMaxWidth = 0.75 * vm._config.size.margin.bottom;
         if (this.getComputedTextLength() > labelMaxWidth) {
           d3.select(this)
             .on('mouseover', axesTip.show)
@@ -305,9 +306,11 @@ export default function (config, helper) {
             }).attr('title', d);
             ++i;
           }
+        } else {
+          return d;
         }
-      }
-    });
+      });
+    }
 
     var colorScale = d3.scaleQuantile()
       .domain([0, d3.max(vm._data, function (d) {
