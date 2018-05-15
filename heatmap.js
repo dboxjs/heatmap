@@ -160,7 +160,7 @@ export default function (config, helper) {
     //defaults to right position
     var legend = d3.select(vm._config.bindTo).select('svg')
       .append('g')
-      .attr('class', 'legend')
+      .attr('class', 'legend quantized')
       .attr('transform', 'translate(' + (vm._config.size.width - 100) + ',' + vm._config.size.height * .1 + ')');
 
     // legend background
@@ -195,7 +195,7 @@ export default function (config, helper) {
 
     // Rect
     quantiles.append('rect')
-      .attr('x', -10)
+      .attr('x', -15)
       .attr('y', 0)
       .attr('width', 18)
       .attr('height', quantilePosition.bandwidth())
@@ -224,9 +224,13 @@ export default function (config, helper) {
       .attr('y', vm._config.size.height / 5 - 18)
       .attr('class', 'bottom-label')
       .attr('text-anchor', 'left')
-      .text(function (d) {
-        let min = (vm._scales.color.invertExtent(d)[0]);
-        return vm.utils.format(min);
+      .text(function (d, i) {
+        if (i === 0) {
+          let min = (vm._scales.color.invertExtent(d)[0]);
+          return vm.utils.format(min);
+        } else {
+          return '';
+        }
       });
   };
 
