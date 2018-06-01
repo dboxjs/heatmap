@@ -16,7 +16,7 @@ export default function (config, helper) {
 
     vm._legendElementWidth = vm._gridWidth;
 
-    vm._tip = d3.tip()
+    vm._tip = vm.utils.d3.tip()
       .attr('class', 'd3-tip')
       .direction('n')
       .html(vm._config.tip || function (d) {
@@ -241,7 +241,7 @@ export default function (config, helper) {
     //Call the tip
     vm.chart.svg().call(vm._tip);
 
-    const axesTip = d3.tip().html(d => {
+    const axesTip = vm.utils.d3.tip().html(d => {
       return '<div class="title-tip">' + d + '</div>';
     });
     vm.chart.svg().call(axesTip);
