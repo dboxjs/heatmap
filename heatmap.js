@@ -16,7 +16,7 @@ export default function (config, helper) {
 
     vm._legendElementWidth = vm._gridWidth;
 
-    vm._tip = d3.tip()
+    vm._tip = vm.utils.d3.tip()
       .attr('class', 'd3-tip')
       .direction('n')
       .html(vm._config.tip || function (d) {
@@ -153,75 +153,87 @@ export default function (config, helper) {
 
   Heatmap.drawColorLegend = function () {
     var vm = this;
-   
-    //Define legend gradient
-    var defs = vm.chart.svg().append('defs');
 
-    var linearGradient = defs.append('linearGradient')
-      .attr('id', 'linear-gradient-label');
-
-    //Define direction for gradient. Default is vertical top-bottom.
-    linearGradient
-      .attr('x1', '0%')
-      .attr('y1', '100%')
-      .attr('x2', '0%')
-      .attr('y2', '0%');
-
-    //Define color scheme as linear gradient
-    var colorScale = d3.scaleLinear()
-      .range(vm._config.colors);
-
-    linearGradient.selectAll('stop') 
-      .data(colorScale.range())                  
-      .enter().append('stop')
-      .attr('offset', function(d,i) { return i/(colorScale.range().length-1); })
-      .attr('stop-color', function(d) { return d; });
-
+    var domain = vm._config.colors;
+    var quantilePosition = d3.scaleBand().rangeRound([vm._config.size.height * 0.8, 0]).domain(domain);
     //Add gradient legend 
     //defaults to right position
-    var legend = vm.chart.svg()
+    var legend = d3.select(vm._config.bindTo).select('svg')
       .append('g')
-      .attr('class', 'legend')
-      .attr('transform', 'translate(' + (vm._config.size.width - vm._config.size.margin.right + 5) +',' + vm._config.size.height * .1 + ')');
+      .attr('class', 'legend quantized')
+      .attr('transform', 'translate(' + (vm._config.size.width - 100) + ',' + vm._config.size.height * .1 + ')');
 
-    //legend title
+    // legend background
+    legend.append('rect')
+      .attr('x', -50)
+      .attr('y', -35)
+      .attr('width', 100)
+      .attr('height', vm._config.size.height - 10)
+      .attr('rx', 10)
+      .attr('ry', 10)
+      .attr('class', 'legend-background')
+      .attr('fill', 'rgba(255,255,255,0.6)');
+
+    // legend title
     legend.append('text')
       .attr('x', 0)
+      .attr('y', -12)
       .attr('class', 'legend-title')
       .attr('text-anchor', 'middle')
       .text(vm._config.legendTitle);
 
+
+    var quantiles = legend.selectAll('.quantile')
+      .data(vm._config.colors)
+      .enter()
+      .append('g')
+      .attr('class', 'quantile')
+      .attr('transform', function (d) {
+        return 'translate(-20, ' + quantilePosition(d) +
+          ')';
+      });
+
+    // Rect
+    quantiles.append('rect')
+      .attr('x', -15)
+      .attr('y', 0)
+      .attr('width', 18)
+      .attr('height', quantilePosition.bandwidth())
+      .attr('fill', function (d) {
+        return d;
+      });
+
+
     //top text is the max value
-    legend.append('text')
-      .attr('x', 0)
-      .attr('y', '1.5em')
+    quantiles.append('text')
+      .attr('x', 17)
+      .attr('y', 5)
       .attr('class', 'top-label')
-      .attr('text-anchor', 'middle')
-      .text(function(){
-        let max = Math.ceil(Math.max(...vm._config.fillValues));
+      .attr('text-anchor', 'left')
+      .text(function (d) {
+        let max = (vm._scales.color.invertExtent(d)[1]);
+        if (vm._config.legendTitle === 'Porcentaje' && max > 100) {
+          max = 100;
+        }
         return vm.utils.format(max);
       });
 
-    //draw gradient
-    legend.append('rect')
-      .attr('x', -18)
-      .attr('y', '2.3em')
-      .attr('width', 18)
-      .attr('height', vm._config.size.height * 0.6)
-      .attr('fill', 'url(#linear-gradient-label)');
-
-    //bottom text is the min value
-    legend.append('text')
-      .attr('x', 0)
-      .attr('y', vm._config.size.height * 0.6 + 40)
+    //top text is the min value
+    quantiles.append('text')
+      .attr('x', 17)
+      .attr('y', vm._config.size.height / 5 - 18)
       .attr('class', 'bottom-label')
-      .attr('text-anchor', 'middle')
-      .text(function() {
-        let min = Math.floor(Math.min(...vm._config.fillValues));
-        return vm.utils.format(min);
+      .attr('text-anchor', 'left')
+      .text(function (d, i) {
+        if (i === 0) {
+          let min = (vm._scales.color.invertExtent(d)[0]);
+          return vm.utils.format(min);
+        } else {
+          return '';
+        }
       });
-
   };
+
 
   Heatmap.draw = function () {
     var vm = this;
@@ -229,7 +241,7 @@ export default function (config, helper) {
     //Call the tip
     vm.chart.svg().call(vm._tip);
 
-    const axesTip = d3.tip().html(d => {
+    const axesTip = vm.utils.d3.tip().html(d => {
       return '<div class="title-tip">' + d + '</div>';
     });
     vm.chart.svg().call(axesTip);
@@ -284,16 +296,17 @@ export default function (config, helper) {
         return d;
       });
 
-    vm._xLabels.each(function (d) {
-      let labelMaxWidth = vm._gridWidth * 0.9;
-      if (vm._gridWidth > 60) {
-        d3.select(this).call(vm.utils.wrap, labelMaxWidth, axesTip);
-      } else {
+    const biggestLabelWidth = d3.max(d3.select('.x.axis').selectAll('text').nodes().map(o => o.getComputedTextLength())); // Biggest label computed text length
+    let xBandWidth = vm._gridWidth;
+    let labelMaxWidth = xBandWidth;
+    if (biggestLabelWidth > xBandWidth) { // Biggest label doesn't fit
+      vm._xLabels.each(function (d) {
         d3.select(this)
           .attr('text-anchor', 'end')
           .attr('dy', 0)
-          .attr('transform', 'translate(3,-8)rotate(-90)');
-        labelMaxWidth = vm._config.size.margin.bottom * 0.9;
+          .attr('transform', 'translate(-5,-10)rotate(-90)');
+        // Still doesn't fit!
+        labelMaxWidth = 0.75 * vm._config.size.margin.bottom;
         if (this.getComputedTextLength() > labelMaxWidth) {
           d3.select(this)
             .on('mouseover', axesTip.show)
@@ -305,11 +318,13 @@ export default function (config, helper) {
             }).attr('title', d);
             ++i;
           }
+        } else {
+          return d;
         }
-      }
-    });
+      });
+    }
 
-    var colorScale = d3.scaleQuantile()
+    vm._scales.color = d3.scaleQuantile()
       .domain([0, d3.max(vm._data, function (d) {
         return d.value;
       })])
@@ -360,7 +375,7 @@ export default function (config, helper) {
       .duration(3000)
       .ease(d3.easeLinear)
       .attr('fill', function (d) {
-        return colorScale(d.value);
+        return vm._scales.color(d.value);
       });
 
     if (vm._config.hasOwnProperty('legendTitle') ){ 
