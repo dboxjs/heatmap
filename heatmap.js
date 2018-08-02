@@ -240,8 +240,6 @@ export default function (config, helper) {
       return d.y + ':' + d.x;
     });
 
-
-
     cards.enter().append('text')
       .attr('transform', 'translate(' + (-vm._gridWidth/2) + ',50)')
       .attr("dx", function(d){return (((vm._config.xCategories.indexOf(String(d.x))) + 1) * vm._gridWidth)})
@@ -403,12 +401,13 @@ export default function (config, helper) {
       .attr('fill', function (d) {
         return vm._scales.color(d.value);
       });
-    
-    //Heatmap.drawLabels();
-    if (vm._config.hasOwnProperty('legendTitle') ){ 
-      Heatmap.drawColorLegend(); 
+
+    Heatmap.drawLabels();
+
+    if (vm._config.hasOwnProperty('legendTitle') ) {
+      Heatmap.drawColorLegend();
     }
-      
+
     /*
       var legend = vm.chart.svg().selectAll('.legend')
           .data([0].concat(colorScale.quantiles()), function(d) { return d; });
