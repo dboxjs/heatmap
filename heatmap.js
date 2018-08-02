@@ -234,6 +234,32 @@ export default function (config, helper) {
       });
   };
 
+  Heatmap.drawLabels = function () {
+    var vm = this;
+    var cards = vm.chart.svg().selectAll('.dbox-label').data(vm._data, function (d) {
+      return d.y + ':' + d.x;
+    });
+
+
+
+    cards.enter().append('text')
+      .attr('transform', 'translate(' + (-vm._gridWidth/2) + ',50)')
+      .attr("dx", function(d){return (((vm._config.xCategories.indexOf(String(d.x))) + 1) * vm._gridWidth)})
+      .attr('class', 'dbox-label')
+      .text( function(d) { return d.x });
+
+    cards.enter().append('text')
+      .attr('transform', 'translate(' + (-vm._gridWidth/2) + ',70)')
+      .attr("dx", function(d){return (((vm._config.xCategories.indexOf(String(d.x))) + 1) * vm._gridWidth)})
+      .attr('class', 'dbox-label')
+      .text( function(d) { return d.y });
+
+    cards.enter().append('text')
+      .attr('transform', 'translate(' + (-vm._gridWidth/2) + ',90)')
+      .attr("dx", function(d){return (((vm._config.xCategories.indexOf(String(d.x))) + 1) * vm._gridWidth)})
+      .attr('class', 'dbox-label')
+      .text( function(d) { return Math.round(d.value * 100)/100 });
+  }
 
   Heatmap.draw = function () {
     var vm = this;
@@ -377,7 +403,8 @@ export default function (config, helper) {
       .attr('fill', function (d) {
         return vm._scales.color(d.value);
       });
-
+    
+    //Heatmap.drawLabels();
     if (vm._config.hasOwnProperty('legendTitle') ){ 
       Heatmap.drawColorLegend(); 
     }
