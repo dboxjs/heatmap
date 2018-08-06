@@ -140,6 +140,9 @@ export default function (config, helper) {
         x: d[vm._config.x],
         value: +d[vm._config.fill],
       };
+      if (d.coefficient) {
+        m.coefficient = d.coefficient.toFixed(2);
+      }
       return m;
     });
 
@@ -273,6 +276,20 @@ export default function (config, helper) {
       .attr('class', 'dbox-label')
       .text( function(d) {
         return vm.utils.format(d.value);
+      });
+
+    //COEFFICIENT
+    cards.enter().append('text')
+      .attr('transform', 'translate(' + (-vm._gridWidth/2) + ',110)')
+      .attr("dx", function(d){
+        return (((vm._config.xCategories.indexOf(String(d.x))) + 1) * vm._gridWidth)
+      })
+      .attr('dy', function(d) {
+        return (vm._config.yCategories.indexOf(String(d.y))) * vm._gridHeight;
+      })
+      .attr('class', 'dbox-label-coefficient')
+      .text( function(d) {
+        return '(' + d.coefficient + ')';
       });
   }
 
