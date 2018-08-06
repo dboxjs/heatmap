@@ -242,8 +242,8 @@ export default function (config, helper) {
     var cards = vm.chart.svg().selectAll('.dbox-label').data(vm._data, function (d) {
       return d.y + ':' + d.x;
     });
-
-    cards.enter().append('text')
+    // AXIS
+    /*cards.enter().append('text')
       .attr('transform', 'translate(' + (-vm._gridWidth/2) + ', 10)')
       .attr('dx', function(d){ 
         return (((vm._config.xCategories.indexOf(String(d.x))) + 1) * vm._gridWidth);
@@ -263,10 +263,10 @@ export default function (config, helper) {
         return (vm._config.yCategories.indexOf(String(d.y))) * vm._gridHeight;
       })
       .attr('class', 'dbox-label')
-      .text( function(d) { return d.y });
+      .text( function(d) { return d.y });*/
 
     cards.enter().append('text')
-      .attr('transform', 'translate(' + (-vm._gridWidth/2) + ', 50)')
+      .attr('transform', 'translate(' + (-vm._gridWidth/2) + ', 20)')
       .attr("dx", function(d){
         return (((vm._config.xCategories.indexOf(String(d.x))) + 1) * vm._gridWidth)
       })
@@ -275,12 +275,12 @@ export default function (config, helper) {
       })
       .attr('class', 'dbox-label')
       .text( function(d) {
-        return vm.utils.format(d.value);
+        return d.value ? vm.utils.format(d.value) : '';
       });
 
     //COEFFICIENT
     cards.enter().append('text')
-      .attr('transform', 'translate(' + (-vm._gridWidth/2) + ',70)')
+      .attr('transform', 'translate(' + (-vm._gridWidth/2) + ', 40)')
       .attr("dx", function(d){
         return (((vm._config.xCategories.indexOf(String(d.x))) + 1) * vm._gridWidth)
       })
@@ -289,7 +289,7 @@ export default function (config, helper) {
       })
       .attr('class', 'dbox-label-coefficient')
       .text( function(d) {
-        return '(' + d.coefficient + ')';
+        return d.coefficient ? '(' + d.coefficient + ')' : '';
       });
   }
 
