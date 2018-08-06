@@ -242,21 +242,38 @@ export default function (config, helper) {
 
     cards.enter().append('text')
       .attr('transform', 'translate(' + (-vm._gridWidth/2) + ',50)')
-      .attr("dx", function(d){return (((vm._config.xCategories.indexOf(String(d.x))) + 1) * vm._gridWidth)})
+      .attr('dx', function(d){ 
+        return (((vm._config.xCategories.indexOf(String(d.x))) + 1) * vm._gridWidth);
+      })
+      .attr('dy', function(d) {
+        return (vm._config.yCategories.indexOf(String(d.y))) * vm._gridHeight;
+      })
       .attr('class', 'dbox-label')
       .text( function(d) { return d.x });
 
     cards.enter().append('text')
       .attr('transform', 'translate(' + (-vm._gridWidth/2) + ',70)')
-      .attr("dx", function(d){return (((vm._config.xCategories.indexOf(String(d.x))) + 1) * vm._gridWidth)})
+      .attr("dx", function(d){
+        return (((vm._config.xCategories.indexOf(String(d.x))) + 1) * vm._gridWidth)
+      })
+      .attr('dy', function(d) {
+        return (vm._config.yCategories.indexOf(String(d.y))) * vm._gridHeight;
+      })
       .attr('class', 'dbox-label')
       .text( function(d) { return d.y });
 
     cards.enter().append('text')
       .attr('transform', 'translate(' + (-vm._gridWidth/2) + ',90)')
-      .attr("dx", function(d){return (((vm._config.xCategories.indexOf(String(d.x))) + 1) * vm._gridWidth)})
+      .attr("dx", function(d){
+        return (((vm._config.xCategories.indexOf(String(d.x))) + 1) * vm._gridWidth)
+      })
+      .attr('dy', function(d) {
+        return (vm._config.yCategories.indexOf(String(d.y))) * vm._gridHeight;
+      })
       .attr('class', 'dbox-label')
-      .text( function(d) { return Math.round(d.value * 100)/100 });
+      .text( function(d) {
+        return vm.utils.format(d.value);
+      });
   }
 
   Heatmap.draw = function () {
