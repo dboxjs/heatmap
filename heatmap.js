@@ -244,7 +244,7 @@ export default function (config, helper) {
     });
 
     cards.enter().append('text')
-      .attr('transform', 'translate(' + (-vm._gridWidth/2) + ',50)')
+      .attr('transform', 'translate(' + (-vm._gridWidth/2) + ', 10)')
       .attr('dx', function(d){ 
         return (((vm._config.xCategories.indexOf(String(d.x))) + 1) * vm._gridWidth);
       })
@@ -255,7 +255,7 @@ export default function (config, helper) {
       .text( function(d) { return d.x });
 
     cards.enter().append('text')
-      .attr('transform', 'translate(' + (-vm._gridWidth/2) + ',70)')
+      .attr('transform', 'translate(' + (-vm._gridWidth/2) + ', 30)')
       .attr("dx", function(d){
         return (((vm._config.xCategories.indexOf(String(d.x))) + 1) * vm._gridWidth)
       })
@@ -266,7 +266,7 @@ export default function (config, helper) {
       .text( function(d) { return d.y });
 
     cards.enter().append('text')
-      .attr('transform', 'translate(' + (-vm._gridWidth/2) + ',90)')
+      .attr('transform', 'translate(' + (-vm._gridWidth/2) + ', 50)')
       .attr("dx", function(d){
         return (((vm._config.xCategories.indexOf(String(d.x))) + 1) * vm._gridWidth)
       })
@@ -280,7 +280,7 @@ export default function (config, helper) {
 
     //COEFFICIENT
     cards.enter().append('text')
-      .attr('transform', 'translate(' + (-vm._gridWidth/2) + ',110)')
+      .attr('transform', 'translate(' + (-vm._gridWidth/2) + ',70)')
       .attr("dx", function(d){
         return (((vm._config.xCategories.indexOf(String(d.x))) + 1) * vm._gridWidth)
       })
