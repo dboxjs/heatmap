@@ -24,7 +24,7 @@ export default function (config, helper) {
         if (d.x !== d.y) {
           html += '<br>' + d.y;
         }
-        html += '<br>' + vm.utils.format(d.value);
+        html += '<br>' + vm.utils.format(d.value, 1);
         return html;
       });
   };
@@ -275,7 +275,7 @@ export default function (config, helper) {
       })
       .attr('class', 'dbox-label')
       .text( function(d) {
-        return d.value ? vm.utils.format(d.value) : '';
+        return d.value ? vm.utils.format(d.value, 1) : '';
       });
 
     //COEFFICIENT
@@ -289,7 +289,7 @@ export default function (config, helper) {
       })
       .attr('class', 'dbox-label-coefficient')
       .text( function(d) {
-        return d.coefficient ? '(' + d.coefficient + ')' : '';
+        return d.coefficient ? '(' + parseFloat(d.coefficient).toFixed(1) + ')' : '';
       });
   }
 
