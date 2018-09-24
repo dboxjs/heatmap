@@ -24,7 +24,7 @@ export default function (config, helper) {
         if (d.x !== d.y) {
           html += '<br>' + d.y;
         }
-        html += '<br>' + vm.utils.format(d.value, 1);
+        html += '<br>' + vm.utils.format(d.value, vm._config.decimals);
         return html;
       });
   };
@@ -218,7 +218,7 @@ export default function (config, helper) {
         if (vm._config.legendTitle === 'Porcentaje' && max > 100) {
           max = 100;
         }
-        return vm.utils.format(max);
+        return vm.utils.format(max, vm._config.decimals);
       });
 
     //top text is the min value
@@ -230,7 +230,7 @@ export default function (config, helper) {
       .text(function (d, i) {
         if (i === 0) {
           let min = (vm._scales.color.invertExtent(d)[0]);
-          return vm.utils.format(min);
+          return vm.utils.format(min, vm._config.decimals);
         } else {
           return '';
         }
@@ -275,7 +275,7 @@ export default function (config, helper) {
       })
       .attr('class', 'dbox-label')
       .text( function(d) {
-        return d.value ? vm.utils.format(d.value, 1) : '';
+        return d.value ? vm.utils.format(d.value, vm._config.decimals) : '';
       });
 
     //COEFFICIENT
