@@ -164,7 +164,7 @@ export default function (config, helper) {
     var legend = d3.select(vm._config.bindTo).select('svg')
       .append('g')
       .attr('class', 'legend quantized')
-      .attr('transform', 'translate(' + (vm._config.size.width - 100) + ',' + vm._config.size.height * .1 + ')');
+      .attr('transform', 'translate(' + (vm._config.size.width - vm._config.size.legendTranslate) + ',' + vm._config.size.height * .1 + ')');
 
     // legend background
     legend.append('rect')
