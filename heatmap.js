@@ -10,6 +10,10 @@ export default function (config, helper) {
   Heatmap.init = function (config) {
     var vm = this;
     vm._config = config ? config : {};
+    vm._config.size.margin.right = 120;
+    if (!vm._config.size.legendTranslate) {
+      vm._config.size.legendTranslate = 80;
+    }
     vm._data = [];
     vm._scales = {};
     vm._axes = {};
