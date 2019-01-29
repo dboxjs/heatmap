@@ -10,9 +10,8 @@ export default function (config, helper) {
   Heatmap.init = function (config) {
     var vm = this;
     vm._config = config ? config : {};
-    vm._config.size.margin.right = 120;
     if (!vm._config.size.legendTranslate) {
-      vm._config.size.legendTranslate = 80;
+      vm._config.size.legendTranslate = 100;
     }
     vm._data = [];
     vm._scales = {};
@@ -135,6 +134,11 @@ export default function (config, helper) {
      * Calculate grid width and height according to chart size
      */
     vm._gridWidth = Math.floor((vm._config.size.width - (vm._config.size.margin.left + vm._config.size.margin.right)) / vm._config.xCategories.length);
+    console.log(vm._config.size.width);
+    console.log(vm._config.size.margin.right);
+    console.log(vm._config.xCategories.length);
+    console.log(vm._gridWidth);
+    console.log(vm._gridWidth * vm._config.xCategories.length);
 
     vm._gridHeight = Math.floor((vm._config.size.height - (vm._config.size.margin.top + vm._config.size.margin.bottom)) / vm._config.yCategories.length);
 
