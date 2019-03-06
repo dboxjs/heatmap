@@ -391,9 +391,11 @@ export default function (config, helper) {
     }
 
     vm._scales.color = d3.scaleQuantile()
-      .domain([0, d3.max(vm._data, function (d) {
-        return d.value;
-      })])
+    .domain([d3.min(vm._data, function (d) {
+      return d.value;
+    }), d3.max(vm._data, function (d) {
+      return d.value;
+    })])
       .range(vm._config.colors);
 
     var cards = vm.chart.svg().selectAll('.grid-cell')
