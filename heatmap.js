@@ -27,7 +27,7 @@ export default function (config, helper) {
         if (d.x !== d.y) {
           html += '<br>' + d.y;
         }
-        html += '<br>' + vm.utils.format(d.value, false, vm._config.decimals);
+        html += '<br>' + vm.utils.format()(d.value);
         return html;
       });
   };
@@ -226,7 +226,7 @@ export default function (config, helper) {
         if (vm._config.legendTitle === 'Porcentaje' && max > 100) {
           max = 100;
         }
-        return vm.utils.format(max, false, vm._config.decimals);
+        return vm.utils.format()(max);
       });
 
     //top text is the min value
@@ -238,7 +238,7 @@ export default function (config, helper) {
       .text(function (d, i) {
         if (i === 0) {
           let min = (vm._scales.color.invertExtent(d)[0]);
-          return vm.utils.format(min, false, vm._config.decimals);
+          return vm.utils.format()(min);
         } else {
           return '';
         }
@@ -275,22 +275,22 @@ export default function (config, helper) {
 
     cards.enter().append('text')
       .attr('transform', 'translate(' + (-vm._gridWidth/2) + ', 20)')
-      .attr("dx", function(d){
-        return (((vm._config.xCategories.indexOf(String(d.x))) + 1) * vm._gridWidth)
+      .attr('dx', function(d){
+        return (((vm._config.xCategories.indexOf(String(d.x))) + 1) * vm._gridWidth);
       })
       .attr('dy', function(d) {
         return (vm._config.yCategories.indexOf(String(d.y))) * vm._gridHeight;
       })
       .attr('class', 'dbox-label')
       .text( function(d) {
-        return d.value ? vm.utils.format(d.value, false, vm._config.decimals) : '';
+        return d.value ? vm.utils.format()(d.value) : '';
       });
 
     //COEFFICIENT
     cards.enter().append('text')
       .attr('transform', 'translate(' + (-vm._gridWidth/2) + ', 40)')
-      .attr("dx", function(d){
-        return (((vm._config.xCategories.indexOf(String(d.x))) + 1) * vm._gridWidth)
+      .attr('dx', function(d){
+        return (((vm._config.xCategories.indexOf(String(d.x))) + 1) * vm._gridWidth);
       })
       .attr('dy', function(d) {
         return (vm._config.yCategories.indexOf(String(d.y))) * vm._gridHeight;
@@ -299,7 +299,7 @@ export default function (config, helper) {
       .text( function(d) {
         return d.coefficient ? '(' + parseFloat(d.coefficient).toFixed(1) + ')' : '';
       });
-  }
+  };
 
   Heatmap.draw = function () {
     var vm = this;
@@ -390,8 +390,8 @@ export default function (config, helper) {
       });
     }
     vm._scales.color = d3.scaleQuantile()
-    .domain(d3.extent(vm._data, (d) => { return d.value }))
-    .range(vm._config.colors);
+      .domain(d3.extent(vm._data, (d) => { return d.value; }))
+      .range(vm._config.colors);
 
     var cards = vm.chart.svg().selectAll('.grid-cell')
       .data(vm._data, function (d) {
