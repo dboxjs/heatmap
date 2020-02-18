@@ -409,23 +409,29 @@ export default function(config, helper) {
     });
 
     /** Y axis title */
-    vm._yTitle = vm.chart
-      .svg()
-      .select('.y.axis')
-      .select('.y-title')
-      .data(vm._config.yAxis.text)
-      .enter()
-      .append('g')
-      .attr('class', 'y-title')
-      .attr('transform', function(d, i) {
-        return 'translate(0,' + i * vm._gridHeight + ')';
-      })
-      .append('text')
-      .attr('text-anchor', 'middle')
-      .attr('transform', 'translate(-6,' + vm._gridHeight / 1.5 + ')')
-      .text(function(d) {
-        return d;
-      });
+    if (vm._config.yAxis && vm._config.yAxis.text) {
+      const yAxis = vm.chart.svg().select('.y.axis');
+      yAxis.selectAll('.y-title').remove();
+      vm._yTitle = yAxis
+        .append('g')
+        .attr('class', 'y-title')
+        .attr('transform', function(d, i) {
+          return 'translate(0,' + i * vm._gridHeight + ')';
+        })
+        .append('text')
+        .attr('class', 'axis-title')
+        .attr('font-size', 17)
+        .attr('font-weight', 600)
+        .attr('text-anchor', 'middle')
+        .attr(
+          'transform',
+          `translate(-${vm._config.size.margin.left - 15}, ${(vm._config.size
+            .height -
+            vm._config.size.margin.bottom) /
+            2} )rotate(-90)`
+        )
+        .text(vm._config.yAxis.text);
+    }
 
     vm._xLabels = vm.chart
       .svg()
@@ -488,6 +494,31 @@ export default function(config, helper) {
         }
       });
     }
+
+    if (vm._config.xAxis && vm._config.xAxis.text) {
+      const xAxis = vm.chart.svg().select('.x.axis');
+      xAxis.selectAll('.x-title').remove();
+      vm._xTitle = xAxis
+        .append('g')
+        .attr('class', 'x-title')
+        .attr('transform', function(d, i) {
+          return 'translate(0,' + i * vm._gridHeight + ')';
+        })
+        .append('text')
+        .attr('class', 'axis-title')
+        .attr('font-size', 17)
+        .attr('font-weight', 600)
+        .attr('text-anchor', 'middle')
+        .attr(
+          'transform',
+          `translate(${(vm._config.size.width -
+            vm._config.size.margin.left -
+            vm._config.size.margin.right) /
+            2}, ${vm._config.size.height - 20})`
+        )
+        .text(vm._config.xAxis.text);
+    }
+
     vm._scales.color = d3
       .scaleQuantile()
       .domain(
@@ -541,10 +572,6 @@ export default function(config, helper) {
           vm._config.onclick.call(this, d, i);
         }
       })
-      .attr('fill', vm._config.colors[0])
-      .transition()
-      .duration(3000)
-      .ease(d3.easeLinear)
       .attr('fill', function(d) {
         return vm._scales.color(d.value);
       });
