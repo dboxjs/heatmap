@@ -372,7 +372,7 @@ export default function(config, helper) {
       .svg()
       .append('g')
       .attr('class', 'y axis')
-      .attr('transform', 'translate(0,0)')
+      .attr('transform', 'translate(17,0)')
       .selectAll('.tick')
       .data(vm._config.yCategories)
       .enter()
@@ -396,7 +396,7 @@ export default function(config, helper) {
         let i = 1;
         while (
           this.getComputedTextLength() >
-          vm._config.size.margin.left * 0.9
+          vm._config.size.margin.left * 0.8
         ) {
           d3.select(this)
             .text(function(d) {
@@ -425,7 +425,7 @@ export default function(config, helper) {
         .attr('text-anchor', 'middle')
         .attr(
           'transform',
-          `translate(-${vm._config.size.margin.left - 15}, ${(vm._config.size
+          `translate(-${vm._config.size.margin.left - 3}, ${(vm._config.size
             .height -
             vm._config.size.margin.bottom) /
             2} )rotate(-90)`
@@ -437,7 +437,7 @@ export default function(config, helper) {
       .svg()
       .append('g')
       .attr('class', 'x axis')
-      .attr('transform', 'translate(0,0)')
+      .attr('transform', 'translate(23,0)')
       .selectAll('.tick')
       .data(vm._config.xCategories)
       .enter()
@@ -532,6 +532,9 @@ export default function(config, helper) {
 
     var cards = vm.chart
       .svg()
+      .append('g')
+      .attr('class', 'grid-container')
+      .attr('transform', 'translate(17, 0)')
       .selectAll('.grid-cell')
       .data(vm._data, function(d) {
         return d.y + ':' + d.x;
@@ -551,7 +554,7 @@ export default function(config, helper) {
 
       .attr('class', 'grid-cell')
       .attr('stroke', '#fff')
-      .attr('stroke-width', '3px')
+      .attr('stroke-width', '2px')
       .attr('id', function(d) {
         return 'x' + d.x + 'y' + d.y;
       })
