@@ -522,9 +522,11 @@ export default function(config, helper) {
     vm._scales.color = d3
       .scaleQuantile()
       .domain(
-        d3.extent(vm._data, d => {
-          return d.value;
-        })
+        vm._data
+          .map(d => {
+            return d.value;
+          })
+          .sort()
       )
       .range(vm._config.colors);
 
