@@ -322,7 +322,8 @@ export default function(config, helper) {
     cards
       .enter()
       .append('text')
-      .attr('transform', 'translate(' + -vm._gridWidth / 2 + ', 20)')
+      .attr('text-anchor', 'middle')
+      .attr('transform', 'translate(' + (-vm._gridWidth / 2 + 17) + ', 20)')
       .attr('dx', function(d) {
         return (
           (vm._config.xCategories.indexOf(String(d.x)) + 1) * vm._gridWidth
