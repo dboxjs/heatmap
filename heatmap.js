@@ -394,7 +394,19 @@ export default function(config, helper) {
    */
   Heatmap.drawLabels = function() {
     var vm = this;
-    var format = vm.utils.format();
+    // One number of decimals for every cell, from the spread of the values
+    // ("-0.30", "0.01", "1.20", not "-0.3", "0.006", "1.2").
+    var values = vm._data
+      .map(function(d) {
+        return +d.value;
+      })
+      .filter(function(v) {
+        return isFinite(v);
+      });
+    var ext = d3.extent(values);
+    var step = values.length > 1 && ext[1] > ext[0] ? (ext[1] - ext[0]) / 50 : 1;
+    var decimals = Math.max(0, Math.min(3, d3.precisionFixed(step)));
+    var format = typeof vm._config.format === 'function' ? vm._config.format : d3.format(',.' + decimals + 'f');
     vm.chart
       .svg()
       .selectAll('.grid-cell')
@@ -416,7 +428,25 @@ export default function(config, helper) {
           .style('font-variant-numeric', 'tabular-nums')
           .style('pointer-events', 'none')
           .text(format(d.value));
-        if (label.node().getComputedTextLength() > box.width - 4) label.remove();
+        if (label.node().getComputedTextLength() > box.width - 4) {
+          label.remove();
+          return;
+        }
+        // A coefficient, when the data has one, on a second line.
+        if (d.coefficient !== undefined && d.coefficient !== null && box.height >= 28) {
+          label.attr('y', box.y + box.height / 2 - 6);
+          d3.select(this.parentNode)
+            .append('text')
+            .attr('class', 'dbox-label-coefficient dbox-on-mark')
+            .attr('text-anchor', 'middle')
+            .attr('x', box.x + box.width / 2)
+            .attr('y', box.y + box.height / 2 + 7)
+            .attr('dy', '0.35em')
+            .attr('font-size', 10)
+            .style('fill', vm.utils.inkOn(fill))
+            .style('pointer-events', 'none')
+            .text('(' + parseFloat(d.coefficient).toFixed(1) + ')');
+        }
       });
   };
 
