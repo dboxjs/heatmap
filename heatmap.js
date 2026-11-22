@@ -1,5 +1,10 @@
 import * as d3 from 'd3';
 
+/** Gap between the row labels and the first column, in px. */
+var PLOT_OFFSET = 17;
+/** Space kept to the right of the plot for the colour legend, in px. */
+var LEGEND_WIDTH = 76;
+
 /*
  * Heatmap Chart
  */
@@ -75,11 +80,49 @@ export default function(config, helper) {
 
   /**
    * Personalize border radius (rx, ry) for each rect
-   * @param {number} radius - value to be set, default is 5
+   * @param {number} radius - value to be set, default is 0 (square cells)
    */
   Heatmap.borderRadius = function(radius) {
     var vm = this;
     vm._config.borderRadius = radius;
+    return vm;
+  };
+
+  /**
+   * Space between cells, in px, painted in the surface colour. Default 0, so
+   * the cells read as one surface and narrow cells (one year each, say) stay
+   * visible.
+   * @param {number} px
+   */
+  Heatmap.cellGap = function(px) {
+    var vm = this;
+    vm._config.cellGap = px;
+    return vm;
+  };
+
+  /**
+   * How values map to the colours given with colors():
+   * - 'sequential' (default): continuous, from the lowest value to the highest;
+   * - 'diverging': continuous, centred on options.midpoint (default 0), the
+   *   two arms equal unless options.symmetric is false;
+   * - 'quantile': one colour per equal-count class, so colour means rank.
+   * @param {string} type
+   * @param {Object} [options]
+   */
+  Heatmap.colorScale = function(type, options) {
+    var vm = this;
+    vm._config.colorScale = type;
+    vm._config.colorScaleOptions = options || {};
+    return vm;
+  };
+
+  /**
+   * Print each cell's value inside it (off by default).
+   * @param {boolean} on
+   */
+  Heatmap.labels = function(on) {
+    var vm = this;
+    vm._config.cellLabels = !!on;
     return vm;
   };
 
@@ -158,17 +201,24 @@ export default function(config, helper) {
     /**
      * Calculate grid width and height according to chart size
      */
-    vm._gridWidth = Math.floor(
+    // Fractional sizes: flooring to whole pixels is what made one-pixel
+    // cells vanish. The legend gets its own space, beside the plot.
+    var legendSpace = vm._config.hasOwnProperty('legendTitle')
+      ? LEGEND_WIDTH
+      : 0;
+    vm._gridWidth = Math.max(
+      0,
       (vm._config.size.width -
-        (vm._config.size.margin.left + vm._config.size.margin.right)) /
+        (vm._config.size.margin.left + vm._config.size.margin.right) -
+        PLOT_OFFSET -
+        legendSpace) /
         vm._config.xCategories.length
     );
 
-    vm._gridHeight = Math.floor(
+    vm._gridHeight =
       (vm._config.size.height -
         (vm._config.size.margin.top + vm._config.size.margin.bottom)) /
-        vm._config.yCategories.length
-    );
+      vm._config.yCategories.length;
 
     vm._data = data.map(function(d) {
       var m = {
@@ -190,171 +240,213 @@ export default function(config, helper) {
     return vm;
   };
 
-  Heatmap.drawColorLegend = function() {
+  Heatmap.buildColorScale = function() {
     var vm = this;
-
-    var domain = vm._config.colors;
-    var quantilePosition = d3
-      .scaleBand()
-      .rangeRound([vm._config.size.height * 0.8, 0])
-      .domain(domain);
-    //Add gradient legend
-    //defaults to right position
-    var legend = d3
-      .select(vm._config.bindTo)
-      .select('svg')
-      .append('g')
-      .attr('class', 'legend quantized')
-      .attr(
-        'transform',
-        'translate(' +
-          (vm._config.size.width - vm._config.size.legendTranslate) +
-          ',' +
-          vm._config.size.height * 0.1 +
-          ')'
-      );
-
-    // legend background
-    legend
-      .append('rect')
-      .attr('x', -50)
-      .attr('y', -35)
-      .attr('width', 100)
-      .attr('height', vm._config.size.height - 10)
-      .attr('rx', 10)
-      .attr('ry', 10)
-      .attr('class', 'legend-background')
-      .attr('fill', 'rgba(255,255,255,0.6)');
-
-    // legend title
-    legend
-      .append('text')
-      .attr('x', 0)
-      .attr('y', -12)
-      .attr('class', 'legend-title')
-      .attr('text-anchor', 'middle')
-      .text(vm._config.legendTitle);
-
-    var quantiles = legend
-      .selectAll('.quantile')
-      .data(vm._config.colors)
-      .enter()
-      .append('g')
-      .attr('class', 'quantile')
-      .attr('transform', function(d) {
-        return 'translate(-20, ' + quantilePosition(d) + ')';
+    var colors =
+      vm._config.colors && vm._config.colors.length
+        ? vm._config.colors
+        : ['#cde2fb', '#104281'];
+    var values = vm._data
+      .map(function(d) {
+        return d.value;
+      })
+      .filter(function(v) {
+        return !Number.isNaN(v);
       });
+    var type = vm._config.colorScale || 'sequential';
+    var opts = vm._config.colorScaleOptions || {};
 
-    // Rect
-    quantiles
-      .append('rect')
-      .attr('x', -15)
-      .attr('y', 0)
-      .attr('width', 18)
-      .attr('height', quantilePosition.bandwidth())
-      .attr('fill', function(d) {
-        return d;
-      });
+    if (type === 'quantile' || colors.length < 2) {
+      return d3
+        .scaleQuantile()
+        .domain(values)
+        .range(colors);
+    }
 
-    //top text is the max value
-    quantiles
-      .append('text')
-      .attr('x', 17)
-      .attr('y', 5)
-      .attr('class', 'top-label')
-      .attr('text-anchor', 'left')
-      .text(function(d) {
-        let max = vm._scales.color.invertExtent(d)[1];
-        if (vm._config.legendTitle === 'Porcentaje' && max > 100) {
-          max = 100;
-        }
-        return vm.utils.format()(max);
+    var ext = d3.extent(values);
+    var domain;
+    if (type === 'diverging') {
+      var mid = opts.midpoint !== undefined ? +opts.midpoint : 0;
+      var lo = ext[0];
+      var hi = ext[1];
+      if (opts.symmetric !== false) {
+        var r = Math.max(Math.abs(lo - mid), Math.abs(hi - mid));
+        lo = mid - r;
+        hi = mid + r;
+      }
+      var m = (colors.length - 1) / 2;
+      domain = colors.map(function(c, i) {
+        return i <= m
+          ? lo + (mid - lo) * (i / m)
+          : mid + (hi - mid) * ((i - m) / (colors.length - 1 - m));
       });
-
-    //top text is the min value
-    quantiles
-      .append('text')
-      .attr('x', 17)
-      .attr('y', vm._config.size.height / 5 - 18)
-      .attr('class', 'bottom-label')
-      .attr('text-anchor', 'left')
-      .text(function(d, i) {
-        if (i === 0) {
-          let min = vm._scales.color.invertExtent(d)[0];
-          return vm.utils.format()(min);
-        } else {
-          return '';
-        }
+      vm._colorDomain = [lo, mid, hi];
+    } else {
+      domain = colors.map(function(c, i) {
+        return ext[0] + (ext[1] - ext[0]) * (i / (colors.length - 1));
       });
+      vm._colorDomain = [ext[0], ext[1]];
+    }
+    return d3
+      .scaleLinear()
+      .domain(domain)
+      .range(colors)
+      .interpolate(d3.interpolateLab)
+      .clamp(true);
   };
 
+  /**
+   * The colour legend, in the space kept for it to the right of the plot: a
+   * thin vertical bar (continuous scales) or one block per class (quantile),
+   * with its values beside it and its title above.
+   */
+  Heatmap.drawColorLegend = function() {
+    var vm = this;
+    var scale = vm._scales.color;
+    var fmt = vm.utils.format();
+    var plotRight =
+      PLOT_OFFSET + vm._config.xCategories.length * vm._gridWidth;
+    var plotH = vm._config.yCategories.length * vm._gridHeight;
+    var barW = 10;
+
+    var legend = vm.chart
+      .svg()
+      .append('g')
+      .attr('class', 'legend dbox-color-legend')
+      .attr('transform', 'translate(' + (plotRight + 14) + ',0)');
+
+    // The title above the bar, on up to two lines.
+    var top = 0;
+    if (vm._config.legendTitle) {
+      var title = legend
+        .append('text')
+        .attr('class', 'legend-title')
+        .attr('x', 0)
+        .attr('y', 10)
+        .attr('font-size', 12)
+        .style('fill', 'var(--dbox-text-secondary, color-mix(in srgb, currentColor 72%, transparent))')
+        .text(vm._config.legendTitle);
+      vm.utils.wrap(title, LEGEND_WIDTH - 8);
+      top = 8 + Math.max(1, title.selectAll('tspan').size()) * 14;
+    }
+    var barH = Math.max(48, plotH - top);
+
+    var labels = [];
+    if (scale.quantiles) {
+      var classes = scale.range();
+      var h = barH / classes.length;
+      classes.forEach(function(c, i) {
+        // Highest class on top.
+        var y0 = top + (classes.length - 1 - i) * h;
+        legend
+          .append('rect')
+          .attr('x', 0)
+          .attr('y', y0)
+          .attr('width', barW)
+          .attr('height', h + 0.5)
+          .attr('fill', c);
+        var ext = scale.invertExtent(c);
+        if (i === 0) labels.push({ y: y0 + h, v: ext[0] });
+        labels.push({ y: y0, v: ext[1] });
+      });
+    } else {
+      var steps = 48;
+      var dom = vm._colorDomain;
+      var lo = dom[0];
+      var hi = dom[dom.length - 1];
+      var y = d3
+        .scaleLinear()
+        .domain([lo, hi])
+        .range([top + barH, top]);
+      d3.range(steps).forEach(function(i) {
+        var v0 = lo + ((hi - lo) * i) / steps;
+        var v1 = lo + ((hi - lo) * (i + 1)) / steps;
+        legend
+          .append('rect')
+          .attr('x', 0)
+          .attr('y', y(v1))
+          .attr('width', barW)
+          .attr('height', Math.abs(y(v0) - y(v1)) + 0.5)
+          .attr('fill', scale((v0 + v1) / 2));
+      });
+      dom.forEach(function(v) {
+        labels.push({ y: y(v), v: v });
+      });
+    }
+
+    labels.forEach(function(l) {
+      legend
+        .append('text')
+        .attr('class', 'legend-label')
+        .attr('x', barW + 6)
+        .attr('y', l.y)
+        .attr('dy', '0.35em')
+        .attr('font-size', 12)
+        .style('fill', 'var(--dbox-text-muted, color-mix(in srgb, currentColor 64%, transparent))')
+        .style('font-variant-numeric', 'tabular-nums')
+        .text(fmt(l.v));
+    });
+  };
+
+  /**
+   * Each cell's value, centred in the cell, only where it fits, in the ink
+   * that reads on that cell's colour. Zero is printed; a missing value isn't.
+   */
   Heatmap.drawLabels = function() {
     var vm = this;
-    var cards = vm.chart
+    // One number of decimals for every cell, from the spread of the values
+    // ("-0.30", "0.01", "1.20", not "-0.3", "0.006", "1.2").
+    var values = vm._data
+      .map(function(d) {
+        return +d.value;
+      })
+      .filter(function(v) {
+        return isFinite(v);
+      });
+    var ext = d3.extent(values);
+    var step = values.length > 1 && ext[1] > ext[0] ? (ext[1] - ext[0]) / 50 : 1;
+    var decimals = Math.max(0, Math.min(3, d3.precisionFixed(step)));
+    var format = typeof vm._config.format === 'function' ? vm._config.format : d3.format(',.' + decimals + 'f');
+    vm.chart
       .svg()
-      .selectAll('.dbox-label')
-      .data(vm._data, function(d) {
-        return d.y + ':' + d.x;
-      });
-    // AXIS
-    /*cards.enter().append('text')
-      .attr('transform', 'translate(' + (-vm._gridWidth/2) + ', 10)')
-      .attr('dx', function(d){ 
-        return (((vm._config.xCategories.indexOf(String(d.x))) + 1) * vm._gridWidth);
-      })
-      .attr('dy', function(d) {
-        return (vm._config.yCategories.indexOf(String(d.y))) * vm._gridHeight;
-      })
-      .attr('class', 'dbox-label')
-      .text( function(d) { return d.x });
-
-    cards.enter().append('text')
-      .attr('transform', 'translate(' + (-vm._gridWidth/2) + ', 30)')
-      .attr('dx', function(d){
-        return (((vm._config.xCategories.indexOf(String(d.x))) + 1) * vm._gridWidth)
-      })
-      .attr('dy', function(d) {
-        return (vm._config.yCategories.indexOf(String(d.y))) * vm._gridHeight;
-      })
-      .attr('class', 'dbox-label')
-      .text( function(d) { return d.y });*/
-
-    cards
-      .enter()
-      .append('text')
-      .attr('text-anchor', 'middle')
-      .attr('transform', 'translate(' + (-vm._gridWidth / 2 + 17) + ', 20)')
-      .attr('dx', function(d) {
-        return (
-          (vm._config.xCategories.indexOf(String(d.x)) + 1) * vm._gridWidth
-        );
-      })
-      .attr('dy', function(d) {
-        return vm._config.yCategories.indexOf(String(d.y)) * vm._gridHeight;
-      })
-      .attr('class', 'dbox-label')
-      .text(function(d) {
-        return d.value ? vm.utils.format()(d.value) : '';
-      });
-
-    //COEFFICIENT
-    cards
-      .enter()
-      .append('text')
-      .attr('transform', 'translate(' + -vm._gridWidth / 2 + ', 40)')
-      .attr('dx', function(d) {
-        return (
-          (vm._config.xCategories.indexOf(String(d.x)) + 1) * vm._gridWidth
-        );
-      })
-      .attr('dy', function(d) {
-        return vm._config.yCategories.indexOf(String(d.y)) * vm._gridHeight;
-      })
-      .attr('class', 'dbox-label-coefficient')
-      .text(function(d) {
-        return d.coefficient
-          ? '(' + parseFloat(d.coefficient).toFixed(1) + ')'
-          : '';
+      .selectAll('.grid-cell')
+      .each(function(d) {
+        if (d.value === undefined || d.value === null || Number.isNaN(d.value)) return;
+        var box = this.getBBox();
+        if (box.height < 13 || box.width < 18) return;
+        var fill = getComputedStyle(this).fill;
+        var label = d3
+          .select(this.parentNode)
+          .append('text')
+          .attr('class', 'dbox-label dbox-on-mark')
+          .attr('text-anchor', 'middle')
+          .attr('x', box.x + box.width / 2)
+          .attr('y', box.y + box.height / 2)
+          .attr('dy', '0.35em')
+          .attr('font-size', 11)
+          .style('fill', vm.utils.inkOn(fill))
+          .style('font-variant-numeric', 'tabular-nums')
+          .style('pointer-events', 'none')
+          .text(format(d.value));
+        if (label.node().getComputedTextLength() > box.width - 4) {
+          label.remove();
+          return;
+        }
+        // A coefficient, when the data has one, on a second line.
+        if (d.coefficient !== undefined && d.coefficient !== null && box.height >= 28) {
+          label.attr('y', box.y + box.height / 2 - 6);
+          d3.select(this.parentNode)
+            .append('text')
+            .attr('class', 'dbox-label-coefficient dbox-on-mark')
+            .attr('text-anchor', 'middle')
+            .attr('x', box.x + box.width / 2)
+            .attr('y', box.y + box.height / 2 + 7)
+            .attr('dy', '0.35em')
+            .attr('font-size', 10)
+            .style('fill', vm.utils.inkOn(fill))
+            .style('pointer-events', 'none')
+            .text('(' + parseFloat(d.coefficient).toFixed(1) + ')');
+        }
       });
   };
 
@@ -364,7 +456,7 @@ export default function(config, helper) {
     //Call the tip
     vm.chart.svg().call(vm._tip);
 
-    const axesTip = vm.utils.d3.tip().html(d => {
+    const axesTip = vm.utils.d3.tip().attr('class', 'd3-tip title-tip').html(d => {
       return '<div class="title-tip">' + d + '</div>';
     });
     vm.chart.svg().call(axesTip);
@@ -373,7 +465,7 @@ export default function(config, helper) {
       .svg()
       .append('g')
       .attr('class', 'y axis')
-      .attr('transform', 'translate(17,0)')
+      .attr('transform', 'translate(' + PLOT_OFFSET + ',0)')
       .selectAll('.tick')
       .data(vm._config.yCategories)
       .enter()
@@ -384,28 +476,25 @@ export default function(config, helper) {
       })
       .append('text')
       .attr('text-anchor', 'end')
-      .attr('transform', 'translate(-6,' + vm._gridHeight / 1.5 + ')')
+      .attr('dominant-baseline', 'middle')
+      .attr('font-size', 12)
+      .style('fill', 'var(--dbox-text-muted, color-mix(in srgb, currentColor 64%, transparent))')
+      .attr('transform', 'translate(-6,' + vm._gridHeight / 2 + ')')
       .text(function(d) {
         return d;
       });
 
-    vm._yLabels.each(function(d) {
-      if (this.getComputedTextLength() > vm._config.size.margin.left * 0.9) {
+    // Short rows: label every n-th one. Long names: drop whole words.
+    var everyRow = Math.max(1, Math.ceil(13 / Math.max(vm._gridHeight, 1)));
+    vm._yLabels.each(function(d, i) {
+      if (i % everyRow !== 0) {
+        d3.select(this).style('display', 'none');
+        return;
+      }
+      if (vm.utils.fitWords(this, vm._config.size.margin.left * 0.9)) {
         d3.select(this)
           .on('mouseover', axesTip.show)
           .on('mouseout', axesTip.hide);
-        let i = 1;
-        while (
-          this.getComputedTextLength() >
-          vm._config.size.margin.left * 0.8
-        ) {
-          d3.select(this)
-            .text(function(d) {
-              return d.slice(0, -i) + '...';
-            })
-            .attr('title', d);
-          ++i;
-        }
       }
     });
 
@@ -421,8 +510,9 @@ export default function(config, helper) {
         })
         .append('text')
         .attr('class', 'axis-title')
-        .attr('font-size', 17)
-        .attr('font-weight', 600)
+        .attr('font-size', 13)
+        .attr('font-weight', 400)
+        .style('fill', 'var(--dbox-text-secondary, color-mix(in srgb, currentColor 72%, transparent))')
         .attr('text-anchor', 'middle')
         .attr(
           'transform',
@@ -438,7 +528,7 @@ export default function(config, helper) {
       .svg()
       .append('g')
       .attr('class', 'x axis')
-      .attr('transform', 'translate(23,0)')
+      .attr('transform', 'translate(' + PLOT_OFFSET + ',0)')
       .selectAll('.tick')
       .data(vm._config.xCategories)
       .enter()
@@ -455,46 +545,27 @@ export default function(config, helper) {
       })
       .append('text')
       .attr('text-anchor', 'middle')
+      .attr('font-size', 12)
+      .style('fill', 'var(--dbox-text-muted, color-mix(in srgb, currentColor 64%, transparent))')
       .text(function(d) {
         return d;
       });
 
-    const biggestLabelWidth = d3.max(
-      d3
-        .select('.x.axis')
-        .selectAll('text')
-        .nodes()
-        .map(o => o.getComputedTextLength())
-    ); // Biggest label computed text length
-    let xBandWidth = vm._gridWidth;
-    let labelMaxWidth = xBandWidth;
-    if (biggestLabelWidth > xBandWidth) {
-      // Biggest label doesn't fit
-      vm._xLabels.each(function(d) {
-        d3.select(this)
-          .attr('text-anchor', 'end')
-          .attr('dy', 0)
-          .attr('transform', 'translate(-5,-10)rotate(-90)');
-        // Still doesn't fit!
-        labelMaxWidth = 0.75 * vm._config.size.margin.bottom;
-        if (this.getComputedTextLength() > labelMaxWidth) {
-          d3.select(this)
-            .on('mouseover', axesTip.show)
-            .on('mouseout', axesTip.hide);
-          let i = 1;
-          while (this.getComputedTextLength() > labelMaxWidth) {
-            d3.select(this)
-              .text(function(d) {
-                return d.slice(0, -i) + '...';
-              })
-              .attr('title', d);
-            ++i;
-          }
-        } else {
-          return d;
-        }
-      });
-    }
+    // Labels wider than their column: show every n-th one. Measured on this
+    // chart's own labels (a page-wide '.x.axis' selector measured another).
+    const biggestLabelWidth =
+      d3.max(
+        vm._xLabels.nodes().map(function(o) {
+          return o.getComputedTextLength();
+        })
+      ) || 0;
+    var everyCol = Math.max(
+      1,
+      Math.ceil((biggestLabelWidth + 6) / Math.max(vm._gridWidth, 1))
+    );
+    vm._xLabels.style('display', function(d, i) {
+      return i % everyCol === 0 ? null : 'none';
+    });
 
     if (vm._config.xAxis && vm._config.xAxis.text) {
       const xAxis = vm.chart.svg().select('.x.axis');
@@ -507,8 +578,9 @@ export default function(config, helper) {
         })
         .append('text')
         .attr('class', 'axis-title')
-        .attr('font-size', 17)
-        .attr('font-weight', 600)
+        .attr('font-size', 13)
+        .attr('font-weight', 400)
+        .style('fill', 'var(--dbox-text-secondary, color-mix(in srgb, currentColor 72%, transparent))')
         .attr('text-anchor', 'middle')
         .attr(
           'transform',
@@ -520,22 +592,14 @@ export default function(config, helper) {
         .text(vm._config.xAxis.text);
     }
 
-    vm._scales.color = d3
-      .scaleQuantile()
-      .domain(
-        vm._data
-          .map(d => {
-            return d.value;
-          })
-          .sort()
-      )
-      .range(vm._config.colors);
+    vm._scales.color = Heatmap.buildColorScale();
 
+    var gap = +vm._config.cellGap || 0;
     var cards = vm.chart
       .svg()
       .append('g')
       .attr('class', 'grid-container')
-      .attr('transform', 'translate(17, 0)')
+      .attr('transform', 'translate(' + PLOT_OFFSET + ', 0)')
       .selectAll('.grid-cell')
       .data(vm._data, function(d) {
         return d.y + ':' + d.x;
@@ -550,17 +614,19 @@ export default function(config, helper) {
       .attr('y', function(d) {
         return vm._config.yCategories.indexOf(String(d.y)) * vm._gridHeight;
       })
-      .attr('rx', vm._config.borderRadius || 5)
-      .attr('ry', vm._config.borderRadius || 5)
+      .attr('rx', vm._config.borderRadius || 0)
+      .attr('ry', vm._config.borderRadius || 0)
 
       .attr('class', 'grid-cell')
-      .attr('stroke', '#fff')
-      .attr('stroke-width', '2px')
+      .style('stroke', gap ? 'var(--dbox-surface, Canvas)' : 'none')
+      .attr('stroke-width', gap || null)
+      .attr('shape-rendering', gap ? null : 'crispEdges')
       .attr('id', function(d) {
         return 'x' + d.x + 'y' + d.y;
       })
-      .attr('width', vm._gridWidth)
-      .attr('height', vm._gridHeight)
+      // Without a gap, a hair of overlap hides antialiasing seams.
+      .attr('width', vm._gridWidth + (gap ? 0 : 0.5))
+      .attr('height', vm._gridHeight + (gap ? 0 : 0.5))
       .on('mouseover', function(d, i) {
         vm._tip.show(d, d3.select(this).node());
         if (vm._config.hasOwnProperty('mouseover')) {
@@ -582,7 +648,11 @@ export default function(config, helper) {
         return vm._scales.color(d.value);
       });
 
-    Heatmap.drawLabels();
+    // Values in the cells only when asked for: the colour and the tooltip
+    // carry them, and a number in every cell is unreadable.
+    if (vm._config.cellLabels) {
+      Heatmap.drawLabels();
+    }
 
     if (vm._config.hasOwnProperty('legendTitle')) {
       Heatmap.drawColorLegend();
