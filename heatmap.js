@@ -388,73 +388,35 @@ export default function(config, helper) {
     });
   };
 
+  /**
+   * Each cell's value, centred in the cell, only where it fits, in the ink
+   * that reads on that cell's colour. Zero is printed; a missing value isn't.
+   */
   Heatmap.drawLabels = function() {
     var vm = this;
-    var cards = vm.chart
+    var format = vm.utils.format();
+    vm.chart
       .svg()
-      .selectAll('.dbox-label')
-      .data(vm._data, function(d) {
-        return d.y + ':' + d.x;
-      });
-    // AXIS
-    /*cards.enter().append('text')
-      .attr('transform', 'translate(' + (-vm._gridWidth/2) + ', 10)')
-      .attr('dx', function(d){ 
-        return (((vm._config.xCategories.indexOf(String(d.x))) + 1) * vm._gridWidth);
-      })
-      .attr('dy', function(d) {
-        return (vm._config.yCategories.indexOf(String(d.y))) * vm._gridHeight;
-      })
-      .attr('class', 'dbox-label')
-      .text( function(d) { return d.x });
-
-    cards.enter().append('text')
-      .attr('transform', 'translate(' + (-vm._gridWidth/2) + ', 30)')
-      .attr('dx', function(d){
-        return (((vm._config.xCategories.indexOf(String(d.x))) + 1) * vm._gridWidth)
-      })
-      .attr('dy', function(d) {
-        return (vm._config.yCategories.indexOf(String(d.y))) * vm._gridHeight;
-      })
-      .attr('class', 'dbox-label')
-      .text( function(d) { return d.y });*/
-
-    cards
-      .enter()
-      .append('text')
-      .attr('text-anchor', 'middle')
-      .attr('transform', 'translate(' + (-vm._gridWidth / 2 + 17) + ', 20)')
-      .attr('dx', function(d) {
-        return (
-          (vm._config.xCategories.indexOf(String(d.x)) + 1) * vm._gridWidth
-        );
-      })
-      .attr('dy', function(d) {
-        return vm._config.yCategories.indexOf(String(d.y)) * vm._gridHeight;
-      })
-      .attr('class', 'dbox-label')
-      .text(function(d) {
-        return d.value ? vm.utils.format()(d.value) : '';
-      });
-
-    //COEFFICIENT
-    cards
-      .enter()
-      .append('text')
-      .attr('transform', 'translate(' + -vm._gridWidth / 2 + ', 40)')
-      .attr('dx', function(d) {
-        return (
-          (vm._config.xCategories.indexOf(String(d.x)) + 1) * vm._gridWidth
-        );
-      })
-      .attr('dy', function(d) {
-        return vm._config.yCategories.indexOf(String(d.y)) * vm._gridHeight;
-      })
-      .attr('class', 'dbox-label-coefficient')
-      .text(function(d) {
-        return d.coefficient
-          ? '(' + parseFloat(d.coefficient).toFixed(1) + ')'
-          : '';
+      .selectAll('.grid-cell')
+      .each(function(d) {
+        if (d.value === undefined || d.value === null || Number.isNaN(d.value)) return;
+        var box = this.getBBox();
+        if (box.height < 13 || box.width < 18) return;
+        var fill = getComputedStyle(this).fill;
+        var label = d3
+          .select(this.parentNode)
+          .append('text')
+          .attr('class', 'dbox-label dbox-on-mark')
+          .attr('text-anchor', 'middle')
+          .attr('x', box.x + box.width / 2)
+          .attr('y', box.y + box.height / 2)
+          .attr('dy', '0.35em')
+          .attr('font-size', 11)
+          .style('fill', vm.utils.inkOn(fill))
+          .style('font-variant-numeric', 'tabular-nums')
+          .style('pointer-events', 'none')
+          .text(format(d.value));
+        if (label.node().getComputedTextLength() > box.width - 4) label.remove();
       });
   };
 
