@@ -324,7 +324,7 @@ export default function(config, helper) {
         .attr('x', 0)
         .attr('y', 10)
         .attr('font-size', 12)
-        .style('fill', 'var(--dbox-text-secondary, currentColor)')
+        .style('fill', 'var(--dbox-text-secondary, color-mix(in srgb, currentColor 72%, transparent))')
         .text(vm._config.legendTitle);
       vm.utils.wrap(title, LEGEND_WIDTH - 8);
       top = 8 + Math.max(1, title.selectAll('tspan').size()) * 14;
@@ -382,7 +382,7 @@ export default function(config, helper) {
         .attr('y', l.y)
         .attr('dy', '0.35em')
         .attr('font-size', 12)
-        .style('fill', 'var(--dbox-text-muted, currentColor)')
+        .style('fill', 'var(--dbox-text-muted, color-mix(in srgb, currentColor 64%, transparent))')
         .style('font-variant-numeric', 'tabular-nums')
         .text(fmt(l.v));
     });
@@ -486,7 +486,7 @@ export default function(config, helper) {
       .attr('text-anchor', 'end')
       .attr('dominant-baseline', 'middle')
       .attr('font-size', 12)
-      .style('fill', 'var(--dbox-text-muted, currentColor)')
+      .style('fill', 'var(--dbox-text-muted, color-mix(in srgb, currentColor 64%, transparent))')
       .attr('transform', 'translate(-6,' + vm._gridHeight / 2 + ')')
       .text(function(d) {
         return d;
@@ -520,7 +520,7 @@ export default function(config, helper) {
         .attr('class', 'axis-title')
         .attr('font-size', 13)
         .attr('font-weight', 400)
-        .style('fill', 'var(--dbox-text-secondary, currentColor)')
+        .style('fill', 'var(--dbox-text-secondary, color-mix(in srgb, currentColor 72%, transparent))')
         .attr('text-anchor', 'middle')
         .attr(
           'transform',
@@ -554,7 +554,7 @@ export default function(config, helper) {
       .append('text')
       .attr('text-anchor', 'middle')
       .attr('font-size', 12)
-      .style('fill', 'var(--dbox-text-muted, currentColor)')
+      .style('fill', 'var(--dbox-text-muted, color-mix(in srgb, currentColor 64%, transparent))')
       .text(function(d) {
         return d;
       });
@@ -588,7 +588,7 @@ export default function(config, helper) {
         .attr('class', 'axis-title')
         .attr('font-size', 13)
         .attr('font-weight', 400)
-        .style('fill', 'var(--dbox-text-secondary, currentColor)')
+        .style('fill', 'var(--dbox-text-secondary, color-mix(in srgb, currentColor 72%, transparent))')
         .attr('text-anchor', 'middle')
         .attr(
           'transform',
